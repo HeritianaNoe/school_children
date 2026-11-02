@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────── Enums ─────────
+enum Role {
+  ADMIN
+  DIRECTOR
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED // absence justifiée
+}
+
+enum SessionStatus {
+  PLANNED
+  DONE
+  CANCELLED
+}
+
+enum AssessmentType {
+  HOMEWORK
+  TEST
+  EXAM
+}
+
+enum PayslipStatus {
+  DRAFT
+  VALIDATED
+  PAID
+}
+
+// ───────── Auth / personnes ─────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  student       Student?
+  teacher       Teacher?
+  comments      Comment[]      @relation("CommentAuthor")
+  notifications Notification[]
+}
+
+model Student {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  matricule String  @unique
+  classeId  String
+  classe    Classe  @relation(fields: [classeId], references: [id])
+
+  attendances StudentAttendance[]
+  grades      Grade[]
+  comments    Comment[]           @relation("CommentStudent")
+
+  @@index([classeId])
+}
+
+model Teacher {
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  user       User    @relation(fields: [userId], references: [id])
+  hourlyRate Decimal @db.Decimal(12, 2) // Ar / ora
+
+  courses     Course[]
+  sessions    Session[]
+  attendances TeacherAttendance[]
+  payslips    Payslip[]
+  comments    Comment[]           @relation("CommentTeacher")
+}
+
+// ───────── Structure pédagogique ─────────
+model Classe {
+  id       String    @id @default(cuid())
+  name     String // ex: "6ème A"
+  year     String // ex: "2026-2027"
+  students Student[]
+  courses  Course[]
+
+  @@unique([name, year])
+}
+
+model Subject {
+  id      String   @id @default(cuid())
+  name    String   @unique
+  courses Course[]
+}
+
+// Affectation : matière X classe X prof
+model Course {
+  id          String  @id @default(cuid())
+  classeId    String
+  subjectId   String
+  teacherId   String
+  coefficient Float   @default(1)
+
+  classe      Classe       @relation(fields: [classeId], references: [id])
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  sessions    Session[]
+  assessments Assessment[]
+
+  @@unique([classeId, subjectId])
+  @@index([teacherId])
+}
+
+// ───────── Séances & présence ─────────
+model Session {
+  id        String        @id @default(cuid())
+  courseId  String
+  teacherId String // prof réel (peut différer en cas de remplacement)
+  startsAt  DateTime
+  endsAt    DateTime
+  status    SessionStatus @default(PLANNED)
+
+  course            Course              @relation(fields: [courseId], references: [id])
+  teacher           Teacher             @relation(fields: [teacherId], references: [id])
+  studentAttendance StudentAttendance[]
+  teacherAttendance TeacherAttendance?
+  comments          Comment[]
+
+  @@index([courseId, startsAt])
+  @@index([teacherId, startsAt])
+}
+
+model StudentAttendance {
+  id          String           @id @default(cuid())
+  sessionId   String
+  studentId   String
+  status      AttendanceStatus
+  minutesLate Int              @default(0)
+  note        String?
+  markedAt    DateTime         @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, markedAt])
+}
+
+model TeacherAttendance {
+  id        String           @id @default(cuid())
+  sessionId String           @unique
+  teacherId String
+  status    AttendanceStatus
+  arrivedAt DateTime?
+  leftAt    DateTime?
+  note      String?
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@index([teacherId])
+}
+
+// ───────── Notes ─────────
+model Term {
+  id          String       @id @default(cuid())
+  name        String // "Trimestre 1"
+  startDate   DateTime
+  endDate     DateTime
+  assessments Assessment[]
+}
+
+model Assessment {
+  id          String         @id @default(cuid())
+  courseId    String
+  termId      String
+  title       String
+  type        AssessmentType
+  maxScore    Float          @default(20)
+  coefficient Float          @default(1)
+  date        DateTime
+
+  course Course  @relation(fields: [courseId], references: [id])
+  term   Term    @relation(fields: [termId], references: [id])
+  grades Grade[]
+}
+
+model Grade {
+  id           String   @id @default(cuid())
+  assessmentId String
+  studentId    String
+  score        Float? // null = absent à l'évaluation
+  updatedAt    DateTime @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId])
+}
+
+// ───────── Commentaires ─────────
+model Comment {
+  id        String   @id @default(cuid())
+  authorId  String
+  body      String
+  studentId String?
+  teacherId String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  author  User     @relation("CommentAuthor", fields: [authorId], references: [id])
+  student Student? @relation("CommentStudent", fields: [studentId], references: [id])
+  teacher Teacher? @relation("CommentTeacher", fields: [teacherId], references: [id])
+  session Session? @relation(fields: [sessionId], references: [id])
+
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+// ───────── Notifications ─────────
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String // LATE_3_WEEK, ABSENCE_RATE, TEACHER_LATE...
+  title     String
+  body      String
+  data      Json?
+  dedupeKey String    @unique // évite les doublons à chaque run du cron
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+// ───────── Paie prof ─────────
+model Payslip {
+  id           String        @id @default(cuid())
+  teacherId    String
+  month        String // "2026-11"
+  totalMinutes Int
+  hourlyRate   Decimal       @db.Decimal(12, 2) // snapshot du taux
+  gross        Decimal       @db.Decimal(14, 2)
+  status       PayslipStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([teacherId, month])
+}
