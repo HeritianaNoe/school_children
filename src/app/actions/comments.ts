@@ -18,7 +18,7 @@ export async function addComment(fd: FormData) {
     studentId: raw.studentId || undefined,
     teacherId: raw.teacherId || undefined,
   });
-  if (!d.studentId && !d.teacherId) throw new Error("Tsy misy kendrena");
+  if (!d.studentId && !d.teacherId) throw new Error("Cible manquante");
   if (d.teacherId && !isStaff(user.role)) throw new Error("Forbidden"); // admin ihany no manoratra momba ny prof
   await prisma.comment.create({ data: { ...d, authorId: user.id } });
   revalidatePath(d.studentId ? `/students/${d.studentId}` : `/teachers/${d.teacherId}`);

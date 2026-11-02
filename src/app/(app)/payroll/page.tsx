@@ -13,9 +13,9 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
     const slips = await prisma.payslip.findMany({ where: { teacherId: t.id }, orderBy: { month: "desc" } });
     return (
       <>
-        <h1>Ny karamako</h1>
+        <h1>Ma paie</h1>
         <table>
-          <thead><tr><th>Volana</th><th>Ora</th><th>Taux</th><th>Brut</th><th>Status</th></tr></thead>
+          <thead><tr><th>Mois</th><th>Heures</th><th>Taux</th><th>Brut</th><th>Statut</th></tr></thead>
           <tbody>
             {slips.map((p) => (
               <tr key={p.id}><td>{p.month}</td><td>{(p.totalMinutes / 60).toFixed(2)}</td>
@@ -38,7 +38,7 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
 
   return (
     <>
-      <h1>Karama mpampianatra</h1>
+      <h1>Paie mpampianatra</h1>
       <form method="get" style={{ display: "flex", gap: 8 }}>
         <input type="month" name="month" defaultValue={month} /><button>Hijery</button>
       </form>

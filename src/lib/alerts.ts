@@ -55,8 +55,8 @@ export async function runStudentAlerts(now = new Date()) {
     if (!st) continue;
     await notify([...admins, st.userId], {
       type: "STUDENT_LATE_WEEK",
-      title: "Tara matetika",
-      body: `${st.user.name} dia tara ${g._count._all} indroa tamin'ity herinandro ity.`,
+      title: "Retards fréquents",
+      body: `${st.user.name} a accumulé ${g._count._all} retard(s) cette semaine.`,
       key: `STU_LATE:${st.id}:${wk}`,
       data: { studentId: st.id, count: g._count._all },
     });
@@ -119,8 +119,8 @@ export async function runTeacherAlerts(now = new Date()) {
     if (!t) continue;
     await notify([...admins, t.userId], {
       type: "TEACHER_LATE_WEEK",
-      title: "Mpampianatra tara matetika",
-      body: `${t.user.name} dia tara ${g._count._all} indroa tamin'ity herinandro ity.`,
+      title: "Enseignant souvent en retard",
+      body: `${t.user.name} a accumulé ${g._count._all} retard(s) cette semaine.`,
       key: `TCH_LATE:${t.id}:${wk}`,
     });
   }
@@ -129,7 +129,7 @@ export async function runTeacherAlerts(now = new Date()) {
     if (!t) continue;
     await notify([...admins, t.userId], {
       type: "TEACHER_ABSENT",
-      title: "Mpampianatra tsy tonga matetika",
+      title: "Enseignant souvent absent",
       body: `${t.user.name} dia tsy tonga ${g._count._all} indroa tao anatin'ny 30 andro.`,
       key: `TCH_ABS:${t.id}:${wk}`,
     });

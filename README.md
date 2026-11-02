@@ -11,6 +11,8 @@ npm run dev                           # http://localhost:3000
 ```
 Compte seed (teny miafina `password123`): `admin@ecole.mg`, `rakoto@ecole.mg` (prof), `rasoa@ecole.mg` (prof), `andry@ecole.mg` (mpianatra).
 
+Compte : admin@ecole.mg / password123
+
 ## Fitaovana
 | Zavatra | Toerana |
 |---|---|

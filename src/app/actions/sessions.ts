@@ -13,7 +13,7 @@ const schema = z.object({
 export async function createSessionAction(fd: FormData) {
   await requireUser(["ADMIN", "DIRECTOR"]);
   const d = schema.parse(Object.fromEntries(fd));
-  if (d.endsAt <= d.startsAt) throw new Error("Ora farany tsy mety");
+  if (d.endsAt <= d.startsAt) throw new Error("Horaire de fin invalide");
   const course = await prisma.course.findUniqueOrThrow({ where: { id: d.courseId } });
   const s = await prisma.session.create({ data: { ...d, teacherId: course.teacherId } });
   redirect(`/sessions/${s.id}`);

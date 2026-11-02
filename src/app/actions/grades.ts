@@ -19,7 +19,7 @@ export async function saveGrades(input: unknown) {
   });
   if (user.role === "TEACHER" && a.course.teacher.userId !== user.id) throw new Error("Forbidden");
   if (grades.some((g) => g.score !== null && g.score > a.maxScore))
-    throw new Error(`Noty mihoatra ny ${a.maxScore}`);
+    throw new Error(`Note supérieure à ${a.maxScore}`);
 
   await prisma.$transaction(
     grades.map((g) =>

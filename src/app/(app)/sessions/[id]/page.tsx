@@ -33,7 +33,7 @@ export default async function SessionPage({ params }: { params: { id: string } }
       <h1>{s.course.subject.name} — {s.course.classe.name}</h1>
       <p className="muted">{fmtDate(s.startsAt)} {fmtTime(s.startsAt)}–{fmtTime(s.endsAt)} · Prof: {s.teacher.user.name} · <span className={`tag ${s.status}`}>{s.status}</span></p>
 
-      <h2>Présence mpianatra</h2>
+      <h2>Présence des élèves</h2>
       <AttendanceForm sessionId={s.id} initial={initial} />
 
       {isStaff(u.role) && (
@@ -43,7 +43,7 @@ export default async function SessionPage({ params }: { params: { id: string } }
             <input type="hidden" name="sessionId" value={s.id} />
             <label>Status
               <select name="status" defaultValue={ta?.status ?? "PRESENT"}>
-                <option value="PRESENT">Tonga</option><option value="LATE">Tara</option>
+                <option value="PRESENT">Présent</option><option value="LATE">En retard</option>
                 <option value="ABSENT">Absent</option><option value="EXCUSED">Absent (justifié)</option>
               </select>
             </label>

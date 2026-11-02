@@ -16,11 +16,16 @@ enum Role {
   PARENT
 }
 
+enum Sex {
+  M
+  F
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
   LATE
-  EXCUSED // absence justifiée
+  EXCUSED
 }
 
 enum SessionStatus {
@@ -58,25 +63,39 @@ model User {
 }
 
 model Student {
-  id        String  @id @default(cuid())
-  userId    String  @unique
-  user      User    @relation(fields: [userId], references: [id])
-  matricule String  @unique
-  classeId  String
-  classe    Classe  @relation(fields: [classeId], references: [id])
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  matricule    String    @unique
+  firstName    String
+  lastName     String
+  birthDate    DateTime?
+  birthPlace   String?
+  sex          Sex?
+  address      String?
+  phone        String?
+  parentName   String?
+  parentPhone  String?
+  photoUrl     String?
+  registeredAt DateTime  @default(now())
+
+  classeId     String
+  classe       Classe    @relation(fields: [classeId], references: [id])
 
   attendances StudentAttendance[]
   grades      Grade[]
   comments    Comment[]           @relation("CommentStudent")
 
   @@index([classeId])
+  @@index([lastName, firstName])
 }
 
 model Teacher {
   id         String  @id @default(cuid())
   userId     String  @unique
-  user       User    @relation(fields: [userId], references: [id])
-  hourlyRate Decimal @db.Decimal(12, 2) // Ar / ora
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hourlyRate Decimal @db.Decimal(12, 2)
 
   courses     Course[]
   sessions    Session[]
@@ -102,7 +121,6 @@ model Subject {
   courses Course[]
 }
 
-// Affectation : matière X classe X prof
 model Course {
   id          String  @id @default(cuid())
   classeId    String
@@ -124,7 +142,7 @@ model Course {
 model Session {
   id        String        @id @default(cuid())
   courseId  String
-  teacherId String // prof réel (peut différer en cas de remplacement)
+  teacherId String
   startsAt  DateTime
   endsAt    DateTime
   status    SessionStatus @default(PLANNED)
@@ -173,7 +191,7 @@ model TeacherAttendance {
 // ───────── Notes ─────────
 model Term {
   id          String       @id @default(cuid())
-  name        String // "Trimestre 1"
+  name        String
   startDate   DateTime
   endDate     DateTime
   assessments Assessment[]
@@ -198,7 +216,7 @@ model Grade {
   id           String   @id @default(cuid())
   assessmentId String
   studentId    String
-  score        Float? // null = absent à l'évaluation
+  score        Float?
   updatedAt    DateTime @updatedAt
 
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
@@ -230,11 +248,11 @@ model Comment {
 model Notification {
   id        String    @id @default(cuid())
   userId    String
-  type      String // LATE_3_WEEK, ABSENCE_RATE, TEACHER_LATE...
+  type      String
   title     String
   body      String
   data      Json?
-  dedupeKey String    @unique // évite les doublons à chaque run du cron
+  dedupeKey String    @unique
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
@@ -247,9 +265,9 @@ model Notification {
 model Payslip {
   id           String        @id @default(cuid())
   teacherId    String
-  month        String // "2026-11"
+  month        String
   totalMinutes Int
-  hourlyRate   Decimal       @db.Decimal(12, 2) // snapshot du taux
+  hourlyRate   Decimal       @db.Decimal(12, 2)
   gross        Decimal       @db.Decimal(14, 2)
   status       PayslipStatus @default(DRAFT)
   createdAt    DateTime      @default(now())

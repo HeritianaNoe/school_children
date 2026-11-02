@@ -1,65 +1,77 @@
 "use client";
-import { useState, useTransition } from "react";
-import { saveStudentAttendance } from "@/app/actions/attendance";
 
-type Row = { studentId: string; name: string; status: string; minutesLate: number; note: string };
+import { useTransition } from "react";
+import { saveAttendance } from "@/app/actions/attendance";
 
-export default function AttendanceForm({ sessionId, initial }: { sessionId: string; initial: Row[] }) {
-  const [rows, setRows] = useState(initial);
+type Row = {
+  studentId: string;
+  name: string;
+  status: string;
+  minutesLate: number;
+  note: string;
+};
+
+export default function AttendanceForm({
+  sessionId,
+  rows,
+}: {
+  sessionId: string;
+  rows: Row[];
+}) {
   const [pending, start] = useTransition();
-  const [msg, setMsg] = useState("");
-
-  const upd = (i: number, patch: Partial<Row>) =>
-    setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
-
-  const submit = () =>
-    start(async () => {
-      try {
-        await saveStudentAttendance({
-          sessionId,
-          rows: rows.map((r) => ({
-            studentId: r.studentId,
-            status: r.status,
-            minutesLate: r.status === "LATE" ? Number(r.minutesLate) || 0 : 0,
-            note: r.note || undefined,
-          })),
-        });
-        setMsg("Voatahiry ✔");
-      } catch (e) {
-        setMsg("Hadisoana: " + (e as Error).message);
-      }
-    });
 
   return (
-    <div>
+    <form
+      action={(fd) => start(() => saveAttendance(fd))}
+      className="table-wrap"
+      style={{ padding: 0 }}
+    >
+      <input type="hidden" name="sessionId" value={sessionId} />
       <table>
         <thead>
-          <tr><th>Mpianatra</th><th>Status</th><th>Minitra tara</th><th>Fanamarihana</th></tr>
+          <tr>
+            <th>Élève</th>
+            <th>Statut</th>
+            <th>Minutes de retard</th>
+            <th>Remarque</th>
+          </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.studentId}>
-              <td>{r.name}</td>
               <td>
-                <select value={r.status} onChange={(e) => upd(i, { status: e.target.value })}>
-                  <option value="PRESENT">Tonga</option>
-                  <option value="LATE">Tara</option>
+                {r.name}
+                <input type="hidden" name={`rows[${i}].studentId`} value={r.studentId} />
+              </td>
+              <td>
+                <select name={`rows[${i}].status`} defaultValue={r.status}>
+                  <option value="PRESENT">Présent</option>
+                  <option value="LATE">En retard</option>
                   <option value="ABSENT">Absent</option>
-                  <option value="EXCUSED">Absent (justifié)</option>
+                  <option value="EXCUSED">Justifié</option>
                 </select>
               </td>
               <td>
-                <input type="number" min={0} style={{ width: 70 }} disabled={r.status !== "LATE"}
-                  value={r.minutesLate} onChange={(e) => upd(i, { minutesLate: Number(e.target.value) })} />
+                <input
+                  name={`rows[${i}].minutesLate`}
+                  type="number"
+                  min={0}
+                  defaultValue={r.minutesLate}
+                  style={{ width: 80 }}
+                />
               </td>
-              <td><input value={r.note} onChange={(e) => upd(i, { note: e.target.value })} /></td>
+              <td>
+                <input name={`rows[${i}].note`} defaultValue={r.note} />
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p>
-        <button onClick={submit} disabled={pending}>{pending ? "..." : "Tehirizo"}</button> {msg}
-      </p>
-    </div>
+      <div style={{ padding: 12 }}>
+        <button type="submit" disabled={pending}>
+          {pending ? "Enregistrement…" : "Enregistrer les présences"}
+        </button>
+      </div>
+    </form>
   );
 }

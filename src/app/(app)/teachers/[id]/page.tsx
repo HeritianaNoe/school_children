@@ -23,15 +23,15 @@ export default async function TeacherPage({ params }: { params: { id: string } }
       <p className="muted">Taux: {fmtAr(Number(t.hourlyRate))} / ora</p>
       <h2>Présence (30 andro)</h2>
       <div className="grid">
-        <div className="card">Tonga: <b>{count("PRESENT")}</b></div>
-        <div className="card">Tara: <b>{count("LATE")}</b></div>
+        <div className="card">Présent : <b>{count("PRESENT")}</b></div>
+        <div className="card">En retard : <b>{count("LATE")}</b></div>
         <div className="card">Absent: <b>{count("ABSENT")}</b></div>
         <div className="card">Justifié: <b>{count("EXCUSED")}</b></div>
       </div>
 
       <h2>Payslips</h2>
       <table>
-        <thead><tr><th>Volana</th><th>Ora</th><th>Brut</th><th>Status</th></tr></thead>
+        <thead><tr><th>Mois</th><th>Heures</th><th>Brut</th><th>Statut</th></tr></thead>
         <tbody>
           {payslips.map((p) => (
             <tr key={p.id}><td>{p.month}</td><td>{(p.totalMinutes / 60).toFixed(2)}</td>
@@ -44,7 +44,7 @@ export default async function TeacherPage({ params }: { params: { id: string } }
       <form action={addComment} className="stack card">
         <input type="hidden" name="teacherId" value={t.id} />
         <textarea name="body" rows={3} required />
-        <button>Ampiana</button>
+        <button>Ajouter</button>
       </form>
       {comments.map((c) => (
         <div className="card" key={c.id}>

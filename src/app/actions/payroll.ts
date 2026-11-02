@@ -7,7 +7,7 @@ import { generatePayslip } from "@/lib/payroll";
 export async function generatePayslips(fd: FormData) {
   await requireUser(["ADMIN", "DIRECTOR"]);
   const month = String(fd.get("month"));
-  if (!/^\d{4}-\d{2}$/.test(month)) throw new Error("Volana tsy mety");
+  if (!/^\d{4}-\d{2}$/.test(month)) throw new Error("Mois invalide");
   const teachers = await prisma.teacher.findMany({ select: { id: true } });
   for (const t of teachers) {
     const existing = await prisma.payslip.findUnique({

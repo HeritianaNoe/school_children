@@ -1,50 +1,63 @@
 "use client";
-import { useState, useTransition } from "react";
+
+import { useTransition } from "react";
 import { saveGrades } from "@/app/actions/grades";
 
-type Row = { studentId: string; name: string; score: string };
+type Row = { studentId: string; name: string; score: number | null };
 
 export default function GradesForm({
-  assessmentId, maxScore, initial,
-}: { assessmentId: string; maxScore: number; initial: Row[] }) {
-  const [rows, setRows] = useState(initial);
+  assessmentId,
+  maxScore,
+  rows,
+}: {
+  assessmentId: string;
+  maxScore: number;
+  rows: Row[];
+}) {
   const [pending, start] = useTransition();
-  const [msg, setMsg] = useState("");
-
-  const submit = () =>
-    start(async () => {
-      try {
-        await saveGrades({
-          assessmentId,
-          grades: rows.map((r) => ({
-            studentId: r.studentId,
-            score: r.score.trim() === "" ? null : Number(r.score.replace(",", ".")),
-          })),
-        });
-        setMsg("Voatahiry ✔");
-      } catch (e) {
-        setMsg("Hadisoana: " + (e as Error).message);
-      }
-    });
 
   return (
-    <div>
-      <p className="muted">Avelao banga ny noty raha tsy tonga ilay mpianatra. Noty /{maxScore}</p>
-      <table>
-        <thead><tr><th>Mpianatra</th><th>Noty</th></tr></thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.studentId}>
-              <td>{r.name}</td>
-              <td>
-                <input inputMode="decimal" style={{ width: 90 }} value={r.score}
-                  onChange={(e) => setRows((x) => x.map((y, j) => (j === i ? { ...y, score: e.target.value } : y)))} />
-              </td>
+    <form action={(fd) => start(() => saveGrades(fd))}>
+      <input type="hidden" name="assessmentId" value={assessmentId} />
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Laissez vide si l&apos;élève était absent. Note sur {maxScore}.
+      </p>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Élève</th>
+              <th>Note</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p><button onClick={submit} disabled={pending}>{pending ? "..." : "Tehirizo"}</button> {msg}</p>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.studentId}>
+                <td>
+                  {r.name}
+                  <input type="hidden" name={`rows[${i}].studentId`} value={r.studentId} />
+                </td>
+                <td>
+                  <input
+                    name={`rows[${i}].score`}
+                    type="number"
+                    step="0.25"
+                    min={0}
+                    max={maxScore}
+                    defaultValue={r.score ?? ""}
+                    style={{ width: 100 }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <button type="submit" disabled={pending}>
+          {pending ? "Enregistrement…" : "Enregistrer les notes"}
+        </button>
+      </div>
+    </form>
   );
 }

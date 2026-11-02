@@ -1,24 +1,37 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { markRead, markAllRead } from "@/app/actions/notifications";
+import { markAllRead } from "@/app/actions/notifications";
 
-export default async function Notifications() {
+export default async function NotificationsPage() {
   const u = await requireUser();
-  const list = await prisma.notification.findMany({ where: { userId: u.id }, orderBy: { createdAt: "desc" }, take: 100 });
+  const list = await prisma.notification.findMany({
+    where: { userId: u.id },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+
   return (
     <>
-      <h1>Notification</h1>
-      <form action={markAllRead}><button>Marihina ho voavaky rehetra</button></form>
-      <br />
-      {list.length === 0 && <p className="muted">Tsy misy.</p>}
+      <div className="page-header">
+        <div>
+          <h1>Notifications</h1>
+          <p>{list.filter((n) => !n.readAt).length} non lue(s)</p>
+        </div>
+        <form action={markAllRead}>
+          <button type="submit" className="btn-secondary">
+            Tout marquer comme lu
+          </button>
+        </form>
+      </div>
+
+      {list.length === 0 && <p className="muted">Aucune notification.</p>}
       {list.map((n) => (
         <div key={n.id} className={`card ${n.readAt ? "" : "unread"}`}>
           <strong>{n.title}</strong>
-          <div>{n.body}</div>
-          <div className="muted">{n.createdAt.toLocaleString("fr-FR")}</div>
-          {!n.readAt && (
-            <form action={markRead}><input type="hidden" name="id" value={n.id} /><button className="link">Voavaky</button></form>
-          )}
+          <div style={{ marginTop: 4 }}>{n.body}</div>
+          <div className="muted" style={{ marginTop: 6, fontSize: "0.8rem" }}>
+            {n.createdAt.toLocaleString("fr-FR")}
+          </div>
         </div>
       ))}
     </>
