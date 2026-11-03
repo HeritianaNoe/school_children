@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { forbidden } from "./flash";
 import type { Role } from "@prisma/client";
 
 export type SessionUser = { id: string; role: Role; name: string };
@@ -39,8 +40,8 @@ export async function getSession(): Promise<SessionUser | null> {
 export async function requireUser(roles?: Role[]): Promise<SessionUser> {
   const u = await getSession();
   if (!u) redirect("/login");
-  if (roles && !roles.includes(u.role)) throw new Error("Forbidden");
+  if (roles && !roles.includes(u.role)) forbidden();
   return u;
 }
 
-export const isStaff = (r: Role) => r === "ADMIN" || r === "DIRECTOR";
+export const isStaff = (r: Role) => r === "ADMIN" || r === "DIRECTOR" || r === "MANAGER";

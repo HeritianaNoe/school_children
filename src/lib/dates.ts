@@ -1,7 +1,7 @@
-// Herinandro = Alatsinainy → Alahady (ISO)
+// Semaine ISO : du lundi au dimanche
 export function weekRange(ref = new Date()) {
   const start = new Date(ref);
-  const day = (start.getDay() + 6) % 7; // 0 = Alatsinainy
+  const day = (start.getDay() + 6) % 7; // 0 = lundi
   start.setDate(start.getDate() - day);
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);

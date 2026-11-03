@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
 import { fmtDate, fmtTime } from "@/lib/format";
+import { ATTENDANCE_LABEL, SESSION_STATUS_LABEL } from "@/lib/labels";
 
 export default async function SessionsPage() {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
@@ -16,22 +18,17 @@ export default async function SessionsPage() {
     },
   });
 
-  const statusLabel: Record<string, string> = {
-    PLANNED: "Planifiée",
-    DONE: "Terminée",
-    CANCELLED: "Annulée",
-  };
-
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>Séances</h1>
-          <p>Emploi du temps et présences</p>
+          <h1>Séances et présences</h1>
+          <p>Emploi du temps, appel des élèves et présence des enseignants</p>
         </div>
         {isStaff(u.role) && (
           <Link href="/sessions/new" className="btn">
-            + Nouvelle séance
+            <Icon name="plus" size={16} />
+            Nouvelle séance
           </Link>
         )}
       </div>
@@ -46,7 +43,7 @@ export default async function SessionsPage() {
               <th>Matière</th>
               <th>Enseignant</th>
               <th>Statut</th>
-              <th>Présence prof</th>
+              <th>Présence de l'enseignant</th>
               <th></th>
             </tr>
           </thead>
@@ -61,20 +58,20 @@ export default async function SessionsPage() {
                 <td>{s.course.subject.name}</td>
                 <td>{s.teacher.user.name}</td>
                 <td>
-                  <span className={`tag ${s.status}`}>{statusLabel[s.status] ?? s.status}</span>
+                  <span className={`tag ${s.status}`}>{SESSION_STATUS_LABEL[s.status] ?? s.status}</span>
                 </td>
                 <td>
                   {s.teacherAttendance ? (
                     <span className={`tag ${s.teacherAttendance.status}`}>
-                      {s.teacherAttendance.status}
+                      {ATTENDANCE_LABEL[s.teacherAttendance.status]}
                     </span>
                   ) : (
                     "—"
                   )}
                 </td>
                 <td>
-                  <Link href={`/sessions/${s.id}`} className="btn-ghost btn-sm">
-                    Détail
+                  <Link href={`/sessions/${s.id}`} className="btn-ghost btn-sm" title="Voir le détail" aria-label="Voir">
+                    <Icon name="eye" size={16} />
                   </Link>
                 </td>
               </tr>

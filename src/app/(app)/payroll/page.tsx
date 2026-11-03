@@ -3,6 +3,8 @@ import { requireUser, isStaff } from "@/lib/session";
 import { computeTeacherPay } from "@/lib/payroll";
 import { generatePayslips, setPayslipStatus } from "@/app/actions/payroll";
 import { fmtAr } from "@/lib/format";
+import { PAYSLIP_STATUS_LABEL } from "@/lib/labels";
+import { forbidden } from "@/lib/flash";
 
 export default async function Payroll({ searchParams }: { searchParams: { month?: string } }) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
@@ -14,21 +16,24 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
     return (
       <>
         <h1>Ma paie</h1>
+        <div className="table-wrap">
         <table>
-          <thead><tr><th>Mois</th><th>Heures</th><th>Taux</th><th>Brut</th><th>Statut</th></tr></thead>
+          <thead><tr><th>Mois</th><th>Heures</th><th>Taux horaire</th><th>Brut</th><th>Statut</th></tr></thead>
           <tbody>
             {slips.map((p) => (
               <tr key={p.id}><td>{p.month}</td><td>{(p.totalMinutes / 60).toFixed(2)}</td>
                 <td>{fmtAr(Number(p.hourlyRate))}</td><td>{fmtAr(Number(p.gross))}</td>
-                <td><span className={`tag ${p.status}`}>{p.status}</span></td></tr>
+                <td><span className={`tag ${p.status}`}>{PAYSLIP_STATUS_LABEL[p.status]}</span></td></tr>
             ))}
+            {slips.length === 0 && (<tr><td colSpan={5} className="muted" style={{ textAlign: "center", padding: 24 }}>Aucune fiche de paie pour le moment.</td></tr>)}
           </tbody>
         </table>
+        </div>
       </>
     );
   }
 
-  if (!isStaff(u.role)) throw new Error("Forbidden");
+  if (!isStaff(u.role)) forbidden();
   const teachers = await prisma.teacher.findMany({
     include: { user: true, payslips: { where: { month } } },
     orderBy: { user: { name: "asc" } },
@@ -38,12 +43,12 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
 
   return (
     <>
-      <h1>Paie mpampianatra</h1>
-      <form method="get" style={{ display: "flex", gap: 8 }}>
-        <input type="month" name="month" defaultValue={month} /><button>Hijery</button>
+      <h1>Paie des enseignants</h1>
+      <form method="get" className="inline-form">
+        <input type="month" name="month" defaultValue={month} aria-label="Mois" /><button type="submit">Afficher</button>
       </form>
-      <table style={{ marginTop: 16 }}>
-        <thead><tr><th>Prof</th><th>Ora</th><th>Taux</th><th>Brut (kajy)</th><th>Payslip</th></tr></thead>
+      <div className="table-wrap" style={{ marginTop: 16 }}><table>
+        <thead><tr><th>Enseignant</th><th>Heures</th><th>Taux horaire</th><th>Brut (calculé)</th><th>Fiche de paie</th></tr></thead>
         <tbody>
           {rows.map(({ t, calc, slip }) => (
             <tr key={t.id}>
@@ -56,22 +61,22 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
                   <form action={setPayslipStatus} style={{ display: "flex", gap: 6 }}>
                     <input type="hidden" name="id" value={slip.id} />
                     <select name="status" defaultValue={slip.status}>
-                      <option value="DRAFT">Brouillon</option><option value="VALIDATED">Validé</option><option value="PAID">Payé</option>
+                      <option value="DRAFT">Brouillon</option><option value="VALIDATED">Validée</option><option value="PAID">Payée</option>
                     </select>
-                    <button>OK</button>
+                    <button type="submit" className="btn-secondary btn-sm">Mettre à jour</button>
                   </form>
                 ) : "—"}
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
-      <p><b>Total: {fmtAr(total)}</b></p>
+      </table></div>
+      <p style={{ marginTop: 12 }}><b>Total : {fmtAr(total)}</b></p>
       <form action={generatePayslips}>
         <input type="hidden" name="month" value={month} />
-        <button>Mamorona / manavao ny payslip (brouillon)</button>
+        <button type="submit">Générer / actualiser les fiches de paie (brouillon)</button>
       </form>
-      <p className="muted">Ny payslip VALIDATED na PAID dia tsy ovaina intsony rehefa mamorona indray.</p>
+      <p className="muted" style={{ marginTop: 8 }}>Les fiches validées ou payées ne sont plus modifiées lors d&apos;une nouvelle génération.</p>
     </>
   );
 }

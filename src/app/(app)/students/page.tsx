@@ -1,12 +1,34 @@
 import Link from "next/link";
+import { studentImageUrl } from "@/lib/avatar";
+import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, isStaff } from "@/lib/session";
+import { SEX_LABEL } from "@/lib/labels";
 
-export default async function StudentsPage() {
-  await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
+export default async function StudentsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; classe?: string };
+}) {
+  const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
+  const q = (searchParams.q ?? "").trim();
+  const classeId = searchParams.classe ?? "";
 
+  const classes = await prisma.classe.findMany({ orderBy: [{ year: "desc" }, { name: "asc" }] });
   const list = await prisma.student.findMany({
-    include: { user: true, classe: true },
+    where: {
+      ...(classeId ? { classeId } : {}),
+      ...(q
+        ? {
+            OR: [
+              { lastName: { contains: q, mode: "insensitive" } },
+              { firstName: { contains: q, mode: "insensitive" } },
+              { matricule: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    include: { classe: true },
     orderBy: [{ classe: { name: "asc" } }, { lastName: "asc" }, { firstName: "asc" }],
   });
 
@@ -15,12 +37,42 @@ export default async function StudentsPage() {
       <div className="page-header">
         <div>
           <h1>Élèves</h1>
-          <p>{list.length} élève{list.length > 1 ? "s" : ""} inscrit{list.length > 1 ? "s" : ""}</p>
+          <p>
+            {list.length} élève{list.length > 1 ? "s" : ""}
+            {q || classeId ? " trouvé" + (list.length > 1 ? "s" : "") : ` inscrit${list.length > 1 ? "s" : ""}`}
+          </p>
         </div>
-        <Link href="/students/new" className="btn">
-          + Nouvelle inscription
-        </Link>
+        {isStaff(u.role) && (
+          <Link href="/students/new" className="btn">
+            <Icon name="plus" size={16} />
+            Nouvelle inscription
+          </Link>
+        )}
       </div>
+
+      <form method="get" className="filters">
+        <label>
+          Recherche
+          <input name="q" defaultValue={q} placeholder="Nom, prénom ou matricule" />
+        </label>
+        <label>
+          Classe
+          <select name="classe" defaultValue={classeId}>
+            <option value="">Toutes les classes</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.year})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit">Filtrer</button>
+        {(q || classeId) && (
+          <Link href="/students" className="btn-secondary btn">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
 
       <div className="table-wrap">
         <table>
@@ -30,8 +82,8 @@ export default async function StudentsPage() {
               <th>Nom et prénom</th>
               <th>Sexe</th>
               <th>Classe</th>
-              <th>Année</th>
-              <th>Parent / Tuteur</th>
+              <th>Année scolaire</th>
+              <th>Parent / tuteur</th>
               <th></th>
             </tr>
           </thead>
@@ -42,14 +94,16 @@ export default async function StudentsPage() {
                   <strong>{s.matricule}</strong>
                 </td>
                 <td>
-                  {s.lastName.toUpperCase()} {s.firstName}
+                  <div className="row">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={studentImageUrl(s)} alt="" className="thumb" />
+                    <span>
+                      {s.lastName.toUpperCase()} {s.firstName}
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  {s.sex ? (
-                    <span className={`tag ${s.sex}`}>{s.sex === "M" ? "Garçon" : "Fille"}</span>
-                  ) : (
-                    "—"
-                  )}
+                  {s.sex ? <span className={`tag ${s.sex}`}>{SEX_LABEL[s.sex]}</span> : "—"}
                 </td>
                 <td>{s.classe.name}</td>
                 <td className="muted">{s.classe.year}</td>
@@ -62,8 +116,8 @@ export default async function StudentsPage() {
                   )}
                 </td>
                 <td>
-                  <Link href={`/students/${s.id}`} className="btn-ghost btn-sm">
-                    Fiche
+                  <Link href={`/students/${s.id}`} className="btn-ghost btn-sm" title="Voir le dossier" aria-label="Voir le dossier">
+                    <Icon name="eye" size={16} />
                   </Link>
                 </td>
               </tr>
@@ -71,7 +125,7 @@ export default async function StudentsPage() {
             {list.length === 0 && (
               <tr>
                 <td colSpan={7} style={{ textAlign: "center", padding: 32 }} className="muted">
-                  Aucun élève inscrit pour le moment.
+                  {q || classeId ? "Aucun élève ne correspond à votre recherche." : "Aucun élève inscrit pour le moment."}
                 </td>
               </tr>
             )}

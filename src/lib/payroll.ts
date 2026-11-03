@@ -3,9 +3,9 @@ import { prisma } from "./prisma";
 import { monthRange } from "./dates";
 
 /**
- * Ora tena nampianarana = fe-potoana ny séance, voafetra amin'ny
- * fahatongavan'ny prof (arrivedAt) sy ny fialany (leftAt) raha misy.
- * ABSENT / EXCUSED => 0 minitra.
+ * Durée réellement enseignée = durée de la séance, bornée par l'heure
+ * d'arrivée (arrivedAt) et l'heure de départ (leftAt) de l'enseignant si elles existent.
+ * ABSENT / EXCUSED => 0 minute.
  */
 export function effectiveMinutes(s: {
   startsAt: Date;

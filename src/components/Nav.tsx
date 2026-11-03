@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
+import { ROLE_LABEL } from "@/lib/labels";
+import { ROLES, hasRole } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/session";
+import Icon, { type IconName } from "./Icons";
 
-const roleLabel: Record<string, string> = {
-  ADMIN: "Administrateur",
-  DIRECTOR: "Directeur",
-  TEACHER: "Enseignant",
-  STUDENT: "Élève",
-  PARENT: "Parent",
-};
+type NavLink = { href: string; label: string; icon: IconName; show: boolean };
+type NavSection = { title?: string; links: NavLink[] };
 
 export default function Nav({
   user,
@@ -25,62 +23,147 @@ export default function Nav({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const staff = user.role === "ADMIN" || user.role === "DIRECTOR";
+  const staff = hasRole(user.role, ROLES.STAFF);
+  const pedagogy = hasRole(user.role, ROLES.PEDAGOGY);
 
-  const links: { href: string; label: string; show: boolean }[] = [
-    { href: "/dashboard", label: "Tableau de bord", show: true },
-    { href: "/sessions", label: "Séances", show: user.role !== "STUDENT" },
-    { href: "/assessments", label: "Évaluations", show: user.role !== "STUDENT" },
-    { href: "/students", label: "Élèves", show: user.role !== "STUDENT" },
-    { href: "/teachers", label: "Enseignants", show: staff },
-    { href: "/payroll", label: "Paie", show: staff || user.role === "TEACHER" },
-    { href: studentId ? `/students/${studentId}` : "#", label: "Mon dossier", show: !!studentId },
-    { href: "/notifications", label: "Notifications", show: true },
+  // Ferme le menu mobile à chaque navigation et avec la touche Échap
+  useEffect(() => setOpen(false), [pathname]);
+
+  // Le bouton « Menu » vit dans le contenu (MenuButton) : on dialogue par événements
+  useEffect(() => {
+    const toggle = () => setOpen((v) => !v);
+    window.addEventListener("sidebar-toggle", toggle);
+    return () => window.removeEventListener("sidebar-toggle", toggle);
+  }, []);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("sidebar-state", { detail: open }));
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  // La visibilité d'un lien reprend exactement la garde de la page correspondante
+  const sections: NavSection[] = [
+    {
+      links: [
+        { href: "/dashboard", label: "Tableau de bord", icon: "dashboard", show: true },
+        { href: "/notifications", label: "Notifications", icon: "bell", show: true },
+        { href: "/announcements", label: "Annonces", icon: "megaphone", show: true },
+        { href: "/reclamations", label: "Réclamations", icon: "alert", show: true },
+      ],
+    },
+    {
+      title: "Pédagogie",
+      links: [
+        { href: "/students", label: "Élèves", icon: "graduation", show: pedagogy },
+        { href: "/classes", label: "Classes", icon: "school", show: staff },
+        { href: "/subjects", label: "Matières", icon: "book", show: pedagogy },
+        { href: "/terms", label: "Périodes", icon: "calendar", show: staff },
+        { href: "/assessments", label: "Notes et évaluations", icon: "clipboard", show: pedagogy },
+        { href: "/sessions", label: "Séances et présences", icon: "calendarCheck", show: pedagogy },
+      ],
+    },
+    {
+      title: "Personnel",
+      links: [
+        { href: "/teachers", label: "Enseignants", icon: "presentation", show: staff },
+        { href: "/users", label: "Utilisateurs", icon: "users", show: staff },
+        { href: "/payroll", label: "Paie", icon: "wallet", show: pedagogy },
+      ],
+    },
+    {
+      title: "Mon espace",
+      links: [
+        { href: `/students/${studentId}`, label: "Mon dossier", icon: "folder", show: !!studentId },
+        { href: `/students/${studentId}/notes`, label: "Mes notes", icon: "fileText", show: !!studentId },
+        { href: `/students/${studentId}/bulletin`, label: "Mon bulletin", icon: "award", show: !!studentId },
+      ],
+    },
   ];
 
+  const allVisible = sections.flatMap((s) => s.links.filter((l) => l.show));
+  const activeHref = allVisible
+    .filter((l) => pathname === l.href || pathname.startsWith(l.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   const close = () => setOpen(false);
+  const roleLabel = ROLE_LABEL[user.role] ?? user.role;
+  // Évite le doublon visuel quand le nom du compte est identique au rôle (ex. « Administrateur »)
+  const sameAsRole = user.name.trim().toLowerCase() === roleLabel.toLowerCase();
 
   return (
     <>
-      <div className={`sidebar-overlay ${open ? "open" : ""}`} onClick={close} />
-      <aside className={`sidebar ${open ? "open" : ""}`}>
-        <div className="sidebar-brand">🏫 Gestion Scolaire</div>
-        <nav className="sidebar-nav">
-          {links
-            .filter((l) => l.show)
-            .map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={pathname === l.href || pathname.startsWith(l.href + "/") ? "active" : ""}
-                onClick={close}
-              >
-                {l.label}
-                {l.href === "/notifications" && unread > 0 && (
-                  <span className="badge">{unread}</span>
-                )}
-              </Link>
-            ))}
+      <div className={`sidebar-overlay ${open ? "open" : ""}`} onClick={close} aria-hidden="true" />
+      <aside id="sidebar" className={`sidebar ${open ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <span className="brand-mark">
+            <Icon name="school" size={20} />
+          </span>
+          Gestion scolaire
+          <button type="button" className="sidebar-close" onClick={close} aria-label="Fermer le menu">
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Menu principal">
+          {sections.map((section, idx) => {
+            const visibleLinks = section.links.filter((l) => l.show);
+            if (visibleLinks.length === 0) return null;
+            return (
+              <div key={idx} className="nav-section">
+                {section.title && <div className="nav-section-title">{section.title}</div>}
+                {visibleLinks.map((l) => {
+                  const active = l.href === activeHref;
+                  return (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      className={active ? "active" : ""}
+                      aria-current={active ? "page" : undefined}
+                      onClick={close}
+                    >
+                      <span className="nav-icon">
+                        <Icon name={l.icon} size={18} />
+                      </span>
+                      {l.label}
+                      {l.href === "/notifications" && unread > 0 && (
+                        <span className="badge" aria-label={`${unread} non lues`}>
+                          {unread}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
+
         <div className="sidebar-footer">
-          <div>
-            <strong style={{ color: "#fff" }}>{user.name}</strong>
-            <div>{roleLabel[user.role] ?? user.role}</div>
+          <div className="user-chip">
+            <span className="user-avatar">
+              <Icon name="user" size={20} />
+            </span>
+            <div className="user-meta">
+              <strong title={user.name}>{user.name}</strong>
+              {!sameAsRole && <span>{roleLabel}</span>}
+            </div>
           </div>
+          <Link href="/account" className="sidebar-account-link" onClick={close}>
+            <Icon name="pencil" size={14} />
+            Modifier mon compte
+          </Link>
           <form action={logout}>
-            <button type="submit" className="btn-secondary btn-sm" style={{ width: "100%", marginTop: 8 }}>
-              Déconnexion
+            <button type="submit" className="btn-secondary btn-sm logout-btn">
+              <Icon name="logout" size={16} />
+              Se déconnecter
             </button>
           </form>
         </div>
       </aside>
-
-      <div className="topbar no-print">
-        <button type="button" className="menu-toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu">
-          ☰
-        </button>
-        <div className="topbar-title">Gestion Scolaire</div>
-      </div>
     </>
   );
 }

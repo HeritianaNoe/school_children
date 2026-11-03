@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('ADMIN', 'DIRECTOR', 'TEACHER', 'STUDENT', 'PARENT');
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'DIRECTOR', 'TEACHER', 'STUDENT');
 
 -- CreateEnum
 CREATE TYPE "Sex" AS ENUM ('M', 'F');

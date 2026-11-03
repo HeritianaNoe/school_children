@@ -13,6 +13,8 @@ Compte seed (teny miafina `password123`): `admin@ecole.mg`, `rakoto@ecole.mg` (p
 
 Compte : admin@ecole.mg / password123
 
+Tangy amin'ny UI: ny mot de passe par défaut ho an'ny mpianatra sy mpampianatra dia hita amin'ny page `/credentials` ary ho an'ny mpianatra dia `eleve123`, fa ho an'ny mpampianatra/admin dia `password123`.
+
 ## Fitaovana
 | Zavatra | Toerana |
 |---|---|

@@ -1,34 +1,57 @@
 import Link from "next/link";
+import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { fmtDate } from "@/lib/format";
+import { ASSESSMENT_TYPE_LABEL } from "@/lib/labels";
 
-export default async function AssessmentsPage() {
+export default async function AssessmentsPage({
+  searchParams,
+}: {
+  searchParams: { classe?: string };
+}) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
-  const list = await prisma.assessment.findMany({
-    where: u.role === "TEACHER" ? { course: { teacher: { userId: u.id } } } : {},
-    orderBy: { date: "desc" },
-    take: 60,
-    include: { course: { include: { classe: true, subject: true } }, term: true },
-  });
+  const classeId = searchParams.classe ?? "";
+  const ownCourses = u.role === "TEACHER" ? { teacher: { userId: u.id } } : {};
 
-  const typeLabel: Record<string, string> = {
-    HOMEWORK: "Devoir",
-    TEST: "Interro",
-    EXAM: "Examen",
-  };
+  const classes = await prisma.classe.findMany({
+    where: { courses: { some: ownCourses } },
+    orderBy: [{ year: "desc" }, { name: "asc" }],
+  });
+  const list = await prisma.assessment.findMany({
+    where: { course: { ...ownCourses, ...(classeId ? { classeId } : {}) } },
+    orderBy: { date: "desc" },
+    take: 100,
+    include: { course: { include: { classe: true, subject: true } }, term: true, _count: { select: { grades: true } } },
+  });
 
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>Évaluations</h1>
-          <p>Notes et contrôles</p>
+          <h1>Notes et évaluations</h1>
+          <p>Devoirs, interrogations et examens, avec saisie des notes</p>
         </div>
         <Link href="/assessments/new" className="btn">
-          + Nouvelle évaluation
+          <Icon name="plus" size={16} />
+          Nouvelle évaluation
         </Link>
       </div>
+
+      <form method="get" className="filters">
+        <label>
+          Classe
+          <select name="classe" defaultValue={classeId}>
+            <option value="">Toutes les classes</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.year})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit">Filtrer</button>
+      </form>
 
       <div className="table-wrap">
         <table>
@@ -41,6 +64,7 @@ export default async function AssessmentsPage() {
               <th>Matière</th>
               <th>Période</th>
               <th>Coef.</th>
+              <th>Notes saisies</th>
               <th></th>
             </tr>
           </thead>
@@ -50,22 +74,23 @@ export default async function AssessmentsPage() {
                 <td>{fmtDate(a.date)}</td>
                 <td>{a.title}</td>
                 <td>
-                  <span className="tag">{typeLabel[a.type] ?? a.type}</span>
+                  <span className="tag">{ASSESSMENT_TYPE_LABEL[a.type] ?? a.type}</span>
                 </td>
                 <td>{a.course.classe.name}</td>
                 <td>{a.course.subject.name}</td>
                 <td className="muted">{a.term.name}</td>
                 <td>{a.coefficient}</td>
+                <td>{a._count.grades}</td>
                 <td>
-                  <Link href={`/assessments/${a.id}`} className="btn-ghost btn-sm">
-                    Notes
+                  <Link href={`/assessments/${a.id}`} className="btn-ghost btn-sm" title="Saisir / voir les notes" aria-label="Notes">
+                    <Icon name="clipboard" size={16} />
                   </Link>
                 </td>
               </tr>
             ))}
             {list.length === 0 && (
               <tr>
-                <td colSpan={8} className="muted" style={{ textAlign: "center", padding: 28 }}>
+                <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 28 }}>
                   Aucune évaluation.
                 </td>
               </tr>

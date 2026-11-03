@@ -17,7 +17,7 @@ export default async function NewSessionPage() {
           <h1>Nouvelle séance</h1>
           <p>Planifier un cours</p>
         </div>
-        <Link href="/sessions" className="btn-secondary">
+        <Link href="/sessions" className="btn-secondary btn">
           ← Retour
         </Link>
       </div>

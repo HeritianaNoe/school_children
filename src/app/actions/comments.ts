@@ -3,6 +3,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
+import { done, fail, forbidden } from "@/lib/flash";
 
 const schema = z.object({
   body: z.string().min(1).max(2000),
@@ -13,13 +14,16 @@ const schema = z.object({
 export async function addComment(fd: FormData) {
   const user = await requireUser(["TEACHER", "ADMIN", "DIRECTOR"]);
   const raw = Object.fromEntries(fd) as Record<string, string>;
-  const d = schema.parse({
-    body: raw.body,
+  const p = schema.safeParse({
+    body: raw.body?.trim(),
     studentId: raw.studentId || undefined,
     teacherId: raw.teacherId || undefined,
   });
-  if (!d.studentId && !d.teacherId) throw new Error("Cible manquante");
-  if (d.teacherId && !isStaff(user.role)) throw new Error("Forbidden"); // admin ihany no manoratra momba ny prof
+  if (!p.success || (!p.data.studentId && !p.data.teacherId)) fail("/dashboard", "validation");
+  const d = p.data;
+  const path = d.studentId ? `/students/${d.studentId}` : `/teachers/${d.teacherId}`;
+  if (d.teacherId && !isStaff(user.role)) forbidden(); // seule l'administration commente les enseignants
   await prisma.comment.create({ data: { ...d, authorId: user.id } });
-  revalidatePath(d.studentId ? `/students/${d.studentId}` : `/teachers/${d.teacherId}`);
+  revalidatePath(path);
+  done(path, "comment_added");
 }

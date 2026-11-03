@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_PASSWORDS } from "../src/lib/default-passwords";
 import { runStudentAlerts, runTeacherAlerts } from "../src/lib/alerts";
 
 const prisma = new PrismaClient();
@@ -12,7 +13,8 @@ function at(daysAgo: number, h: number, m = 0) {
 }
 
 async function main() {
-  const hash = await bcrypt.hash("password123", 10);
+  const hash = await bcrypt.hash(DEFAULT_PASSWORDS.STAFF, 10);
+  const studentHash = await bcrypt.hash(DEFAULT_PASSWORDS.STUDENT, 10);
 
   await prisma.$transaction([
     prisma.notification.deleteMany(),
@@ -26,6 +28,7 @@ async function main() {
     prisma.payslip.deleteMany(),
     prisma.course.deleteMany(),
     prisma.subject.deleteMany(),
+    prisma.studentPhoto.deleteMany(),
     prisma.student.deleteMany(),
     prisma.teacher.deleteMany(),
     prisma.classe.deleteMany(),
@@ -98,7 +101,7 @@ async function main() {
               email: `${slug}@ecole.mg`,
               name: `${firstName} ${lastName}`,
               role: "STUDENT",
-              passwordHash: hash,
+              passwordHash: studentHash,
             },
           },
         },
@@ -180,7 +183,9 @@ async function main() {
 
   await runStudentAlerts();
   await runTeacherAlerts();
-  console.log("Seed OK — admin@ecole.mg / password123");
+  console.log(
+    `Données de démonstration créées — administrateur : admin@ecole.mg / ${DEFAULT_PASSWORDS.STAFF} · élèves : prenom@ecole.mg / ${DEFAULT_PASSWORDS.STUDENT}`
+  );
 }
 
 main().finally(() => prisma.$disconnect());

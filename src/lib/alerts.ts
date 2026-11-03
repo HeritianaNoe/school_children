@@ -1,11 +1,11 @@
 import { prisma } from "./prisma";
 import { weekRange, weekKey } from "./dates";
 
-// Fetra azo ovaina
+// Seuils d'alerte modifiables
 export const THRESHOLDS = {
   STUDENT_LATE_PER_WEEK: 3,
   STUDENT_ABSENT_RATE_30D: 0.2, // 20 %
-  STUDENT_MIN_SESSIONS_30D: 10, // tsy manao taux raha latsaky ny 10 ny séance
+  STUDENT_MIN_SESSIONS_30D: 10, // pas de taux calculé en dessous de 10 séances
   TEACHER_LATE_PER_WEEK: 3,
   TEACHER_ABSENT_PER_30D: 3,
 };
@@ -23,7 +23,7 @@ async function notify(
   n: { type: string; title: string; body: string; key: string; data?: object }
 ) {
   if (!userIds.length) return;
-  // skipDuplicates + dedupeKey unique => idempotent (azo avela mandeha imbetsaka ny cron)
+  // skipDuplicates + dedupeKey unique => idempotent (la tâche planifiée peut s'exécuter plusieurs fois sans doublons)
   await prisma.notification.createMany({
     data: userIds.map((userId) => ({
       userId,
@@ -42,7 +42,7 @@ export async function runStudentAlerts(now = new Date()) {
   const { start, end } = weekRange(now);
   const wk = weekKey(now);
 
-  // 1) Tara ≥ 3 in-3 tao anatin'ny herinandro
+  // 1) Retards répétés au cours de la semaine
   const lateGroups = await prisma.studentAttendance.groupBy({
     by: ["studentId"],
     where: { status: "LATE", session: { startsAt: { gte: start, lt: end } } },
@@ -62,7 +62,7 @@ export async function runStudentAlerts(now = new Date()) {
     });
   }
 
-  // 2) Absent matetika (30 andro farany)
+  // 2) Absences fréquentes (30 derniers jours)
   const since = new Date(now.getTime() - 30 * 86400_000);
   const rows = await prisma.studentAttendance.groupBy({
     by: ["studentId", "status"],
@@ -86,8 +86,8 @@ export async function runStudentAlerts(now = new Date()) {
     if (!st) continue;
     await notify([...admins, st.userId], {
       type: "STUDENT_ABSENT_RATE",
-      title: "Tsy tonga matetika",
-      body: `${st.user.name}: ${a.absent}/${a.total} séance tsy tonga (${Math.round(rate * 100)}%) tao anatin'ny 30 andro.`,
+      title: "Absences fréquentes",
+      body: `${st.user.name} : ${a.absent} séance(s) manquée(s) sur ${a.total} (${Math.round(rate * 100)} %) au cours des 30 derniers jours.`,
       key: `STU_ABS:${studentId}:${wk}`,
       data: { studentId, rate },
     });
@@ -130,7 +130,7 @@ export async function runTeacherAlerts(now = new Date()) {
     await notify([...admins, t.userId], {
       type: "TEACHER_ABSENT",
       title: "Enseignant souvent absent",
-      body: `${t.user.name} dia tsy tonga ${g._count._all} indroa tao anatin'ny 30 andro.`,
+      body: `${t.user.name} a été absent ${g._count._all} fois au cours des 30 derniers jours.`,
       key: `TCH_ABS:${t.id}:${wk}`,
     });
   }

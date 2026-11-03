@@ -14,11 +14,14 @@ type Row = {
 export default function AttendanceForm({
   sessionId,
   rows,
+  initial,
 }: {
   sessionId: string;
-  rows: Row[];
+  rows?: Row[];
+  initial?: Row[];
 }) {
   const [pending, start] = useTransition();
+  const dataRows = rows ?? initial ?? [];
 
   return (
     <form
@@ -37,7 +40,7 @@ export default function AttendanceForm({
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {dataRows.map((r, i) => (
             <tr key={r.studentId}>
               <td>
                 {r.name}

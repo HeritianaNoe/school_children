@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 
-// Salan'isa /20 : isaky ny matière (coef ny évaluation) avy eo ankapobeny (coef ny matière)
+// Moyenne /20 : par matière (coef. des évaluations), puis moyenne générale (coef. des matières)
 export async function studentAverage(studentId: string, termId: string) {
   const grades = await prisma.grade.findMany({
     where: { studentId, score: { not: null }, assessment: { termId } },

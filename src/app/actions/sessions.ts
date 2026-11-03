@@ -1,8 +1,8 @@
 "use server";
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { done, fail } from "@/lib/flash";
 
 const schema = z.object({
   courseId: z.string().min(1),
@@ -12,11 +12,14 @@ const schema = z.object({
 
 export async function createSessionAction(fd: FormData) {
   await requireUser(["ADMIN", "DIRECTOR"]);
-  const d = schema.parse(Object.fromEntries(fd));
-  if (d.endsAt <= d.startsAt) throw new Error("Horaire de fin invalide");
-  const course = await prisma.course.findUniqueOrThrow({ where: { id: d.courseId } });
+  const p = schema.safeParse(Object.fromEntries(fd));
+  if (!p.success) fail("/sessions/new", "validation");
+  const d = p.data;
+  if (d.endsAt <= d.startsAt) fail("/sessions/new", "session_dates");
+  const course = await prisma.course.findUnique({ where: { id: d.courseId } });
+  if (!course) fail("/sessions/new", "not_found");
   const s = await prisma.session.create({ data: { ...d, teacherId: course.teacherId } });
-  redirect(`/sessions/${s.id}`);
+  done(`/sessions/${s.id}`, "session_created");
 }
 
 export async function changeSessionTeacher(fd: FormData) {
@@ -24,5 +27,5 @@ export async function changeSessionTeacher(fd: FormData) {
   const id = String(fd.get("sessionId"));
   const teacherId = String(fd.get("teacherId"));
   await prisma.session.update({ where: { id }, data: { teacherId } });
-  redirect(`/sessions/${id}`);
+  done(`/sessions/${id}`, "session_teacher_changed");
 }

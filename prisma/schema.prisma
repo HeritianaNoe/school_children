@@ -11,9 +11,9 @@ datasource db {
 enum Role {
   ADMIN
   DIRECTOR
+  MANAGER
   TEACHER
   STUDENT
-  PARENT
 }
 
 enum Sex {
@@ -56,10 +56,12 @@ model User {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  student       Student?
-  teacher       Teacher?
-  comments      Comment[]      @relation("CommentAuthor")
-  notifications Notification[]
+  student        Student?
+  teacher        Teacher?
+  comments       Comment[]      @relation("CommentAuthor")
+  notifications  Notification[]
+  reclamations   Reclamation[]  @relation("ReclamationAuthor")
+  announcements  Announcement[] @relation("AnnouncementAuthor")
 }
 
 model Student {
@@ -83,12 +85,23 @@ model Student {
   classeId     String
   classe       Classe    @relation(fields: [classeId], references: [id])
 
+  photo       StudentPhoto?
   attendances StudentAttendance[]
   grades      Grade[]
   comments    Comment[]           @relation("CommentStudent")
 
   @@index([classeId])
   @@index([lastName, firstName])
+}
+
+// Photo d'identité stockée en base (fonctionne sur tout hébergement, y compris sans disque persistant)
+model StudentPhoto {
+  studentId String   @id
+  data      Bytes
+  mime      String
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model Teacher {
@@ -275,4 +288,36 @@ model Payslip {
   teacher Teacher @relation(fields: [teacherId], references: [id])
 
   @@unique([teacherId, month])
+}
+
+// ───────── Réclamations ─────────
+model Reclamation {
+  id          String   @id @default(cuid())
+  authorId    String
+  subject     String
+  body        String
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
+  response    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation("ReclamationAuthor", fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@index([status])
+}
+
+// ───────── Annonces ─────────
+model Announcement {
+  id          String   @id @default(cuid())
+  authorId    String
+  title       String
+  body        String
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+
+  @@index([createdAt])
 }

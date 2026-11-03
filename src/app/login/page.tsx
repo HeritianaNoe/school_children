@@ -1,4 +1,5 @@
 import { login } from "@/app/actions/auth";
+import Icon from "@/components/Icons";
 
 export default function LoginPage({
   searchParams,
@@ -6,46 +7,47 @@ export default function LoginPage({
   searchParams: { error?: string };
 }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        background: "linear-gradient(145deg, #0f172a 0%, #1e3a5f 100%)",
-      }}
-    >
-      <div
-        className="card"
-        style={{ width: "100%", maxWidth: 400, padding: 28, boxShadow: "0 20px 40px rgba(0,0,0,.25)" }}
-      >
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🏫</div>
-          <h1 style={{ marginBottom: 4 }}>Connexion</h1>
-          <p className="muted">Gestion scolaire</p>
+    <main className="login-shell">
+      <section className="login-brand" aria-hidden="true">
+        <div className="login-logo">
+          <span className="brand-mark">
+            <Icon name="school" size={22} />
+          </span>
+          Gestion scolaire
         </div>
+        <div className="login-pitch">
+          <h2>Toute la vie de l&apos;école, au même endroit.</h2>
+          <p>Élèves, notes, présences, annonces et paie des enseignants : un seul espace pour toute l&apos;équipe.</p>
+        </div>
+        <div className="login-foot">Accès réservé aux membres de l&apos;établissement</div>
+      </section>
 
-        {searchParams.error && (
-          <p className="error" style={{ textAlign: "center" }}>
-            Email ou mot de passe incorrect.
-          </p>
-        )}
+      <section className="login-panel">
+        <div className="login-card">
+          <h1>Connexion</h1>
+          <p className="muted">Entrez vos identifiants pour accéder à votre espace.</p>
 
-        <form action={login} className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
-          <label>
-            Adresse e-mail
-            <input name="email" type="email" required autoComplete="username" placeholder="ex: admin@ecole.mg" />
-          </label>
-          <label>
-            Mot de passe
-            <input name="password" type="password" required autoComplete="current-password" />
-          </label>
-          <button type="submit" style={{ marginTop: 8, width: "100%" }}>
-            Se connecter
-          </button>
-        </form>
-      </div>
+          {searchParams.error && (
+            <p className="error" role="alert">
+              Email ou mot de passe incorrect.
+            </p>
+          )}
+
+          <form action={login} className="form-grid">
+            <label>
+              Adresse e-mail
+              <input name="email" type="email" required autoComplete="username" placeholder="prenom.nom@ecole.mg" />
+            </label>
+            <label>
+              Mot de passe
+              <input name="password" type="password" required autoComplete="current-password" />
+            </label>
+            <button type="submit" style={{ width: "100%", marginTop: 4 }}>
+              Se connecter
+            </button>
+          </form>
+        </div>
+      </section>
     </main>
   );
 }

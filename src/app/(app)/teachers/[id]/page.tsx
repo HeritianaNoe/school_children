@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { addComment } from "@/app/actions/comments";
 import { fmtAr } from "@/lib/format";
+import { PAYSLIP_STATUS_LABEL } from "@/lib/labels";
 
 export default async function TeacherPage({ params }: { params: { id: string } }) {
   await requireUser(["ADMIN", "DIRECTOR"]);
@@ -20,31 +21,32 @@ export default async function TeacherPage({ params }: { params: { id: string } }
   return (
     <>
       <h1>{t.user.name}</h1>
-      <p className="muted">Taux: {fmtAr(Number(t.hourlyRate))} / ora</p>
-      <h2>Présence (30 andro)</h2>
+      <p className="muted">Taux horaire : {fmtAr(Number(t.hourlyRate))} / heure</p>
+      <h2>Présence (30 derniers jours)</h2>
       <div className="grid">
-        <div className="card">Présent : <b>{count("PRESENT")}</b></div>
-        <div className="card">En retard : <b>{count("LATE")}</b></div>
-        <div className="card">Absent: <b>{count("ABSENT")}</b></div>
-        <div className="card">Justifié: <b>{count("EXCUSED")}</b></div>
+        <div className="stat-card"><div className="label">Présences</div><div className="value">{count("PRESENT")}</div></div>
+        <div className="stat-card"><div className="label">Retards</div><div className="value">{count("LATE")}</div></div>
+        <div className="stat-card"><div className="label">Absences</div><div className="value">{count("ABSENT")}</div></div>
+        <div className="stat-card"><div className="label">Absences justifiées</div><div className="value">{count("EXCUSED")}</div></div>
       </div>
 
-      <h2>Payslips</h2>
-      <table>
+      <h2>Fiches de paie</h2>
+      <div className="table-wrap"><table>
         <thead><tr><th>Mois</th><th>Heures</th><th>Brut</th><th>Statut</th></tr></thead>
         <tbody>
           {payslips.map((p) => (
             <tr key={p.id}><td>{p.month}</td><td>{(p.totalMinutes / 60).toFixed(2)}</td>
-              <td>{fmtAr(Number(p.gross))}</td><td><span className={`tag ${p.status}`}>{p.status}</span></td></tr>
+              <td>{fmtAr(Number(p.gross))}</td><td><span className={`tag ${p.status}`}>{PAYSLIP_STATUS_LABEL[p.status]}</span></td></tr>
           ))}
+          {payslips.length === 0 && (<tr><td colSpan={4} className="muted" style={{ textAlign: "center", padding: 24 }}>Aucune fiche de paie.</td></tr>)}
         </tbody>
-      </table>
+      </table></div>
 
       <h2>Commentaires</h2>
       <form action={addComment} className="stack card">
         <input type="hidden" name="teacherId" value={t.id} />
-        <textarea name="body" rows={3} required />
-        <button>Ajouter</button>
+        <textarea name="body" rows={3} required maxLength={2000} placeholder="Saisir un commentaire…" />
+        <div><button type="submit">Ajouter le commentaire</button></div>
       </form>
       {comments.map((c) => (
         <div className="card" key={c.id}>

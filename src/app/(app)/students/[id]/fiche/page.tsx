@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { studentImageUrl } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import PrintButton from "@/components/PrintButton";
+import { fmtDateFull } from "@/lib/format";
+import { SEX_LABEL_LONG } from "@/lib/labels";
 
 export default async function FichePage({ params }: { params: { id: string } }) {
   await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
@@ -12,7 +15,7 @@ export default async function FichePage({ params }: { params: { id: string } }) 
   });
   if (!s) notFound();
 
-  const sexLabel = s.sex === "M" ? "Masculin" : s.sex === "F" ? "Féminin" : "—";
+  const sexLabel = s.sex ? SEX_LABEL_LONG[s.sex] : "—";
 
   return (
     <>
@@ -24,8 +27,11 @@ export default async function FichePage({ params }: { params: { id: string } }) 
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <PrintButton label="Imprimer / Enregistrer en PDF" />
-          <Link href={`/students/${s.id}`} className="btn-secondary">
+          <a href={`/api/students/${s.id}/fiche`} className="btn">
+            Télécharger le PDF
+          </a>
+          <PrintButton label="Imprimer" />
+          <Link href={`/students/${s.id}`} className="btn-secondary btn">
             ← Retour
           </Link>
         </div>
@@ -45,24 +51,8 @@ export default async function FichePage({ params }: { params: { id: string } }) 
               Matricule : <strong>{s.matricule}</strong>
             </p>
           </div>
-          {s.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={s.photoUrl} alt="Photo élève" className="fiche-photo" />
-          ) : (
-            <div
-              className="fiche-photo"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#f1f5f9",
-                color: "#94a3b8",
-                fontSize: 12,
-              }}
-            >
-              Photo
-            </div>
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={studentImageUrl(s)} alt="Photo de l'élève" className="fiche-photo" />
         </header>
 
         <h3 style={{ marginBottom: 14, color: "#0f172a" }}>Identité de l&apos;élève</h3>
@@ -77,7 +67,7 @@ export default async function FichePage({ params }: { params: { id: string } }) 
           </div>
           <div className="fiche-field">
             <label>Date de naissance</label>
-            <div>{s.birthDate ? s.birthDate.toLocaleDateString("fr-FR") : "—"}</div>
+            <div>{fmtDateFull(s.birthDate)}</div>
           </div>
           <div className="fiche-field">
             <label>Lieu de naissance</label>
@@ -89,7 +79,7 @@ export default async function FichePage({ params }: { params: { id: string } }) 
           </div>
           <div className="fiche-field">
             <label>Date d&apos;inscription</label>
-            <div>{s.registeredAt.toLocaleDateString("fr-FR")}</div>
+            <div>{fmtDateFull(s.registeredAt)}</div>
           </div>
         </div>
 
@@ -100,11 +90,11 @@ export default async function FichePage({ params }: { params: { id: string } }) 
             <div>{s.address || "—"}</div>
           </div>
           <div className="fiche-field">
-            <label>Téléphone élève</label>
+            <label>Téléphone de l'élève</label>
             <div>{s.phone || "—"}</div>
           </div>
           <div className="fiche-field">
-            <label>Email</label>
+            <label>Adresse e-mail</label>
             <div>{s.user.email}</div>
           </div>
         </div>
@@ -153,7 +143,7 @@ export default async function FichePage({ params }: { params: { id: string } }) 
         </div>
 
         <p className="muted" style={{ marginTop: 32, fontSize: "0.78rem", textAlign: "center" }}>
-          Document généré le {new Date().toLocaleDateString("fr-FR")} — Gestion Scolaire
+          Document généré le {fmtDateFull(new Date())} — Gestion scolaire
         </p>
       </article>
     </>
