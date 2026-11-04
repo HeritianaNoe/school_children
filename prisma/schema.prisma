@@ -1,3 +1,7 @@
+// Schéma sans dossier « migrations » : la base est créée avec « prisma db push » puis remplie avec « prisma db seed ».
+//   npm run db:push    → crée / synchronise les tables
+//   npm run db:reset   → VIDE la base, recrée les tables et relance le seed (données de démonstration)
+
 generator client {
   provider = "prisma-client-js"
 }

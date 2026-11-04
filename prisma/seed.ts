@@ -158,6 +158,25 @@ async function main() {
   const studentsA = await createStudents(namesA, classeA.id, "M26", 1);
   const studentsB = await createStudents(namesB, classeB.id, "M26", 6);
 
+  // Année précédente (alimente « Historique des années ») : une classe archivée avec 2 matières et 3 élèves
+  const classePrev = await prisma.classe.create({ data: { name: "6ème A", year: "2025-2026" } });
+  await prisma.course.createMany({
+    data: [
+      { classeId: classePrev.id, subjectId: maths.id, teacherId: tMath.id, coefficient: 3 },
+      { classeId: classePrev.id, subjectId: fr.id, teacherId: tFr.id, coefficient: 2 },
+    ],
+  });
+  await createStudents(
+    [
+      ["Koto", "Rabary"],
+      ["Lala", "Rasolofo"],
+      ["Mika", "Andriamanana"],
+    ],
+    classePrev.id,
+    "M25",
+    1
+  );
+
   // Emploi du temps hebdomadaire (lundi → vendredi, 2 plages par jour).
   // Dans une même plage, 6ème A et 5ème B ont des matières différentes (donc des enseignants différents) : aucun conflit.
   const coursesA = [cA_math, cA_fr, cA_mg, cA_hist];
@@ -268,7 +287,7 @@ async function main() {
   await runStudentAlerts();
   await runTeacherAlerts();
   console.log(
-    `Données de démonstration créées — 6ème A + 5ème B · Math, Français, Malagasy, Histoire · emploi du temps (lun–ven)
+    `Données de démonstration créées — 6ème A + 5ème B (+ 6ème A 2025-2026 archivée) · Math, Français, Malagasy, Histoire · emploi du temps (lun–ven)
   admin@ecole.mg (Tiana Andrianaivo) / ${DEFAULT_PASSWORDS.STAFF}
   directeur@ecole.mg (Solofo Rakotomalala) / ${DEFAULT_PASSWORDS.STAFF}
   manager@ecole.mg (Naivo Razafindrakoto) / ${DEFAULT_PASSWORDS.STAFF}
