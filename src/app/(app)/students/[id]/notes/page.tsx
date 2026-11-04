@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { forbidden } from "@/lib/flash";
 import { fmtDate } from "@/lib/format";
+import PrintButton from "@/components/PrintButton";
 
 export default async function StudentNotesPage({ params }: { params: { id: string } }) {
   const u = await requireUser();
@@ -66,9 +67,6 @@ export default async function StudentNotesPage({ params }: { params: { id: strin
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link href={`/students/${s.id}/bulletin`} className="btn">
-            Bulletin (imprimer / PDF)
-          </Link>
           <Link href={`/students/${s.id}`} className="btn-secondary btn">
             ← Dossier de l'élève
           </Link>
@@ -78,9 +76,12 @@ export default async function StudentNotesPage({ params }: { params: { id: strin
       {subjectRows.length === 0 ? (
         <div className="card muted">Aucune note enregistrée pour le moment.</div>
       ) : (
-        <div className="stack">
-          {subjectRows.map((subject) => (
-            <div className="card" key={subject.name}>
+        <div className="card" style={{ padding: 0 }}>
+          {subjectRows.map((subject, i) => (
+            <section
+              key={subject.name}
+              style={{ padding: 20, borderTop: i === 0 ? "none" : "1px solid var(--border, #e2e8f0)" }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <h3 style={{ margin: 0 }}>{subject.name}</h3>
                 <strong>{subject.avg ?? "—"} / 20</strong>
@@ -111,10 +112,17 @@ export default async function StudentNotesPage({ params }: { params: { id: strin
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}
+      <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 20 }}>
+        <a href={`/api/students/${s.id}/notes`} className="btn">
+          PDF
+        </a>
+        <PrintButton label="Imprimer" />
+      </div>
+
     </>
   );
 }

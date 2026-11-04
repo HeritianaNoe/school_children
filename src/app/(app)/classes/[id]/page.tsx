@@ -5,8 +5,16 @@ import { requireUser } from "@/lib/session";
 import { updateClasse, deleteClasse, addCourse, updateCourse, deleteCourse } from "@/app/actions/classes";
 import ConfirmButton from "@/components/ConfirmButton";
 
-export default async function ClassePage({ params }: { params: { id: string } }) {
+export default async function ClassePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { histo?: string };
+}) {
   await requireUser(["ADMIN", "DIRECTOR"]);
+  // Ouverte depuis « Historique des années » : consultation seule, aucune modification possible
+  const readOnly = searchParams.histo === "1";
   const c = await prisma.classe.findUnique({
     where: { id: params.id },
     include: {
@@ -36,11 +44,12 @@ export default async function ClassePage({ params }: { params: { id: string } })
             {c.courses.length > 1 ? "s" : ""}
           </p>
         </div>
-        <Link href="/classes" className="btn-secondary btn">
-          ← Toutes les classes
+        <Link href={readOnly ? "/school-years" : "/classes"} className="btn-secondary btn">
+          {readOnly ? "← Historique des années" : "← Toutes les classes"}
         </Link>
       </div>
 
+      {!readOnly && (
       <form action={updateClasse} className="form-section" style={{ maxWidth: 640 }}>
         <h3>Informations de la classe</h3>
         <input type="hidden" name="id" value={c.id} />
@@ -56,6 +65,7 @@ export default async function ClassePage({ params }: { params: { id: string } })
           <button type="submit">Enregistrer</button>
         </div>
       </form>
+      )}
 
       <h2>Matières enseignées</h2>
       <div className="table-wrap">
@@ -67,7 +77,7 @@ export default async function ClassePage({ params }: { params: { id: string } })
               <th>Coefficient</th>
               <th>Séances</th>
               <th>Évaluations</th>
-              <th>Actions</th>
+              {!readOnly && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -76,6 +86,12 @@ export default async function ClassePage({ params }: { params: { id: string } })
                 <td>
                   <strong>{co.subject.name}</strong>
                 </td>
+                {readOnly ? (
+                  <>
+                    <td>{co.teacher.user.name}</td>
+                    <td>{co.coefficient}</td>
+                  </>
+                ) : (
                 <td colSpan={2}>
                   <form action={updateCourse} className="inline-form">
                     <input type="hidden" name="id" value={co.id} />
@@ -100,8 +116,10 @@ export default async function ClassePage({ params }: { params: { id: string } })
                     </button>
                   </form>
                 </td>
+                )}
                 <td>{co._count.sessions}</td>
                 <td>{co._count.assessments}</td>
+                {!readOnly && (
                 <td>
                   <form action={deleteCourse}>
                     <input type="hidden" name="id" value={co.id} />
@@ -113,11 +131,12 @@ export default async function ClassePage({ params }: { params: { id: string } })
                     </ConfirmButton>
                   </form>
                 </td>
+                )}
               </tr>
             ))}
             {c.courses.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted" style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={readOnly ? 5 : 6} className="muted" style={{ textAlign: "center", padding: 24 }}>
                   Aucune matière n&apos;est encore associée à cette classe.
                 </td>
               </tr>
@@ -125,11 +144,13 @@ export default async function ClassePage({ params }: { params: { id: string } })
           </tbody>
         </table>
       </div>
+      {!readOnly && (
       <p className="muted" style={{ marginTop: 6 }}>
         Une matière ne peut être retirée que si aucune séance ni évaluation n&apos;y est liée.
       </p>
+      )}
 
-      {available.length > 0 && teachers.length > 0 ? (
+      {readOnly ? null : available.length > 0 && teachers.length > 0 ? (
         <form action={addCourse} className="form-section" style={{ marginTop: 16 }}>
           <h3>Ajouter une matière à la classe</h3>
           <input type="hidden" name="classeId" value={c.id} />
@@ -215,6 +236,7 @@ export default async function ClassePage({ params }: { params: { id: string } })
         </table>
       </div>
 
+      {!readOnly && (
       <div className="card danger-zone" style={{ marginTop: 32 }}>
         <strong>Supprimer cette classe</strong>
         <p className="muted" style={{ margin: "6px 0 12px" }}>
@@ -227,6 +249,7 @@ export default async function ClassePage({ params }: { params: { id: string } })
           </ConfirmButton>
         </form>
       </div>
+      )}
     </>
   );
 }

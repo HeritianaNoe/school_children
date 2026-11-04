@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, type SessionUser } from "@/lib/session";
 import { parseDateInput } from "@/lib/format";
 import { done, fail, forbidden } from "@/lib/flash";
+import { ASSESSMENT_TYPE_LABEL } from "@/lib/labels";
 
 const ROLES = ["TEACHER", "ADMIN", "DIRECTOR"] as const;
 
@@ -81,7 +82,7 @@ export async function deleteGrade(fd: FormData) {
 
 // ───────── Évaluations ─────────
 const assessmentSchema = z.object({
-  title: z.string().trim().min(1).max(120),
+  title: z.string().trim().min(1).max(120).optional(),
   type: z.enum(["HOMEWORK", "TEST", "EXAM"]),
   termId: z.string().min(1),
   maxScore: z.coerce.number().positive().max(1000),
@@ -91,7 +92,7 @@ const assessmentSchema = z.object({
 
 const readAssessment = (fd: FormData) =>
   assessmentSchema.safeParse({
-    title: fd.get("title"),
+    title: String(fd.get("title") ?? "").trim() || undefined,
     type: fd.get("type"),
     termId: fd.get("termId"),
     maxScore: fd.get("maxScore") || 20,
@@ -106,8 +107,10 @@ export async function createAssessment(fd: FormData) {
   if (!p.success || !courseId) fail("/assessments/new", "validation");
   await assertCourseAccess(user, courseId);
 
+  // Le titre n'est plus saisi : on utilise le type (Devoir, Interrogation, Examen)
+  const title = p.data.title ?? ASSESSMENT_TYPE_LABEL[p.data.type];
   const a = await prisma.assessment.create({
-    data: { ...p.data, courseId, date: parseDateInput(p.data.date) },
+    data: { ...p.data, title, courseId, date: parseDateInput(p.data.date) },
   });
   revalidatePath("/assessments");
   done(`/assessments/${a.id}`, "assessment_created");

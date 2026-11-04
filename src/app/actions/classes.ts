@@ -35,27 +35,31 @@ export async function createClasse(fd: FormData) {
   }
 }
 
+/** Les actions lancées depuis le tableau (champ from=list) reviennent à la liste des classes. */
+const backTo = (fd: FormData, id: string) => (fd.get("from") === "list" ? "/classes" : `/classes/${id}`);
+
 export async function updateClasse(fd: FormData) {
   await requireUser([...STAFF]);
   const id = String(fd.get("id") ?? "");
-  const back = `/classes/${id}`;
+  const back = backTo(fd, id);
+  const editPage = fd.get("from") === "list" ? `/classes/${id}/edit` : back;
   const p = classeSchema.safeParse({ name: fd.get("name"), year: fd.get("year") });
-  if (!p.success) fail(back, "validation");
+  if (!p.success) fail(editPage, "validation");
   try {
     await prisma.classe.update({ where: { id }, data: p.data });
   } catch (e) {
-    if (isUnique(e)) fail(back, "class_exists");
+    if (isUnique(e)) fail(editPage, "class_exists");
     throw e;
   }
   revalidatePath("/classes");
-  revalidatePath(back);
+  revalidatePath(`/classes/${id}`);
   done(back, "class_updated");
 }
 
 export async function deleteClasse(fd: FormData) {
   await requireUser([...STAFF]);
   const id = String(fd.get("id") ?? "");
-  const back = `/classes/${id}`;
+  const back = backTo(fd, id);
   const students = await prisma.student.count({ where: { classeId: id } });
   if (students > 0) fail(back, "class_has_students");
   const activity =

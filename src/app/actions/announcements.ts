@@ -19,7 +19,7 @@ export async function createAnnouncement(fd: FormData) {
     body: String(fd.get("body") ?? "").trim(),
     published: fd.get("published") === "on" || fd.get("published") === "true",
   });
-  if (!parsed.success) fail("/announcements", "validation");
+  if (!parsed.success) fail("/announcements/new", "validation");
 
   await prisma.announcement.create({
     data: {
@@ -31,7 +31,7 @@ export async function createAnnouncement(fd: FormData) {
   });
   revalidatePath("/announcements");
   revalidatePath("/dashboard");
-  done("/announcements", "created");
+  done("/dashboard", "announcement_created");
 }
 
 export async function deleteAnnouncement(id: string) {

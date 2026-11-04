@@ -54,14 +54,28 @@ model User {
   name         String
   role         Role
   active       Boolean  @default(true)
+  phone        String?
+  photoUrl     String?
+  sex          Sex? // utilisé pour l'avatar par défaut (les élèves ont leur propre champ sur Student)
   createdAt    DateTime @default(now())
 
+  photo          UserPhoto?
   student        Student?
   teacher        Teacher?
   comments       Comment[]      @relation("CommentAuthor")
   notifications  Notification[]
   reclamations   Reclamation[]  @relation("ReclamationAuthor")
   announcements  Announcement[] @relation("AnnouncementAuthor")
+}
+
+// Photo de profil stockée en base (même principe que StudentPhoto ; les comptes élèves utilisent StudentPhoto)
+model UserPhoto {
+  userId    String   @id
+  data      Bytes
+  mime      String
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Student {
@@ -146,9 +160,25 @@ model Course {
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
   sessions    Session[]
   assessments Assessment[]
+  slots       TimetableSlot[]
 
   @@unique([classeId, subjectId])
   @@index([teacherId])
+}
+
+// ───────── Emploi du temps (créneaux hebdomadaires récurrents) ─────────
+model TimetableSlot {
+  id        String  @id @default(cuid())
+  courseId  String
+  dayOfWeek Int // 1 = lundi … 6 = samedi
+  startTime String // « HH:MM »
+  endTime   String // « HH:MM »
+  room      String?
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([dayOfWeek, startTime])
 }
 
 // ───────── Séances & présence ─────────

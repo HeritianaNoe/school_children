@@ -58,7 +58,6 @@ export default async function AssessmentsPage({
           <thead>
             <tr>
               <th>Date</th>
-              <th>Titre</th>
               <th>Type</th>
               <th>Classe</th>
               <th>Matière</th>
@@ -72,7 +71,6 @@ export default async function AssessmentsPage({
             {list.map((a) => (
               <tr key={a.id}>
                 <td>{fmtDate(a.date)}</td>
-                <td>{a.title}</td>
                 <td>
                   <span className="tag">{ASSESSMENT_TYPE_LABEL[a.type] ?? a.type}</span>
                 </td>
@@ -90,7 +88,7 @@ export default async function AssessmentsPage({
             ))}
             {list.length === 0 && (
               <tr>
-                <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 28 }}>
+                <td colSpan={8} className="muted" style={{ textAlign: "center", padding: 28 }}>
                   Aucune évaluation.
                 </td>
               </tr>

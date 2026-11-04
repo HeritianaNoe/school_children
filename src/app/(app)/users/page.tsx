@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/session";
 import { ROLE_LABEL } from "@/lib/labels";
 import { deleteUser, toggleUserActive } from "@/app/actions/users";
 import ConfirmButton from "@/components/ConfirmButton";
+import { userImageUrl } from "@/lib/avatar";
 
 const PAGE_SIZE = 15;
 
@@ -13,7 +14,7 @@ export default async function UsersPage({
 }: {
   searchParams: { q?: string; role?: string; page?: string };
 }) {
-  await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
+  const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   const q = (searchParams.q ?? "").trim();
   const role = searchParams.role ?? "";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
@@ -38,7 +39,7 @@ export default async function UsersPage({
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: {
-        student: { select: { id: true, matricule: true } },
+        student: { select: { id: true, matricule: true, sex: true, photoUrl: true } },
         teacher: { select: { id: true } },
       },
     }),
@@ -99,17 +100,16 @@ export default async function UsersPage({
           <thead>
             <tr>
               <th>Nom</th>
-              <th>E-mail</th>
               <th>Rôle</th>
               <th>Statut</th>
               <th>Liens</th>
-              <th style={{ width: 200 }}>Actions</th>
+              <th style={{ width: 240 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={6} className="muted" style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={5} className="muted" style={{ textAlign: "center", padding: 24 }}>
                   Aucun utilisateur trouvé.
                 </td>
               </tr>
@@ -117,9 +117,12 @@ export default async function UsersPage({
               list.map((u) => (
                 <tr key={u.id} style={{ opacity: u.active ? 1 : 0.55 }}>
                   <td>
-                    <strong>{u.name}</strong>
+                    <div className="row">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={userImageUrl(u)} alt="" className="thumb" />
+                      <strong>{u.name}</strong>
+                    </div>
                   </td>
-                  <td>{u.email}</td>
                   <td>{ROLE_LABEL[u.role] ?? u.role}</td>
                   <td>
                     {u.active ? (
@@ -137,6 +140,9 @@ export default async function UsersPage({
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <Link href={`/users/${u.id}`} className="btn-ghost btn-sm" title="Voir le détail" aria-label="Voir le détail">
+                        <Icon name="eye" size={16} />
+                      </Link>
                       <Link href={`/users/${u.id}/edit`} className="btn-ghost btn-sm" title="Modifier" aria-label="Modifier">
                         <Icon name="pencil" size={16} />
                       </Link>
@@ -145,17 +151,26 @@ export default async function UsersPage({
                           <Icon name={u.active ? "lock" : "unlock"} size={16} />
                         </button>
                       </form>
-                      {!u.student && !u.teacher && (
-                        <form action={deleteUser.bind(null, u.id)}>
-                          <ConfirmButton
-                            message={`Supprimer le compte de ${u.name} ?`}
-                            className="btn-ghost btn-sm"
-                            title="Supprimer"
-                          >
-                            <Icon name="trash" size={16} />
-                          </ConfirmButton>
-                        </form>
-                      )}
+                      {u.id !== me.id &&
+                        (u.role !== "ADMIN" || me.role === "ADMIN") &&
+                        // Élèves et enseignants : réservé à l'administrateur et au directeur (comme la page « Élèves »)
+                        (!(u.student || u.teacher) || me.role !== "MANAGER") && (
+                          <form action={deleteUser.bind(null, u.id)}>
+                            <ConfirmButton
+                              message={
+                                u.student
+                                  ? `Supprimer le compte de ${u.name} ? Son dossier d'élève, ses notes et ses présences seront aussi supprimés. Cette action est irréversible.`
+                                  : u.teacher
+                                    ? `Supprimer le compte de ${u.name} ? Sa fiche enseignant et ses fiches de paie seront aussi supprimées. Cette action est irréversible.`
+                                    : `Supprimer le compte de ${u.name} ? Cette action est irréversible.`
+                              }
+                              className="btn-ghost btn-sm"
+                              title="Supprimer"
+                            >
+                              <Icon name="trash" size={16} />
+                            </ConfirmButton>
+                          </form>
+                        )}
                     </div>
                   </td>
                 </tr>

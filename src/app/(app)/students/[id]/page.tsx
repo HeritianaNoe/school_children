@@ -10,6 +10,7 @@ import { fmtDate, fmtDateFull } from "@/lib/format";
 import { SEX_LABEL } from "@/lib/labels";
 import { forbidden } from "@/lib/flash";
 import ConfirmButton from "@/components/ConfirmButton";
+import PrintButton from "@/components/PrintButton";
 
 export default async function StudentPage({
   params,
@@ -27,6 +28,7 @@ export default async function StudentPage({
   if (u.role === "STUDENT" && s.userId !== u.id) forbidden();
   const staffView = u.role !== "STUDENT";
   const canManage = u.role === "ADMIN" || u.role === "DIRECTOR";
+  const canFiche = u.role === "ADMIN" || u.role === "DIRECTOR" || u.role === "TEACHER"; // fiche d'inscription (l'élève voit la sienne)
 
   const since = new Date(Date.now() - 30 * 86400_000);
   const att = await prisma.studentAttendance.groupBy({
@@ -61,7 +63,7 @@ export default async function StudentPage({
       {searchParams.created && (
         <div className="card" style={{ background: "#d1fae5", borderColor: "#6ee7b7", marginBottom: 16 }}>
           Élève inscrit avec succès. Matricule attribué : <strong>{s.matricule}</strong>.{" "}
-          <Link href={`/students/${s.id}/fiche`}>Imprimer la fiche d&apos;inscription →</Link>
+          {canFiche && <Link href={`/students/${s.id}/fiche`}>Imprimer la fiche d&apos;inscription →</Link>}
         </div>
       )}
 
@@ -79,7 +81,7 @@ export default async function StudentPage({
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {staffView && (
+          {canFiche && (
             <Link href={`/students/${s.id}/fiche`} className="btn">
               Fiche d&apos;inscription
             </Link>
@@ -231,6 +233,15 @@ export default async function StudentPage({
           ))}
         </>
       )}
+
+      <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 24 }}>
+        {(canFiche || !staffView) && (
+          <a href={`/api/students/${s.id}/fiche`} className="btn">
+            PDF
+          </a>
+        )}
+        <PrintButton label="Imprimer" />
+      </div>
 
       {canManage && (
         <div className="card danger-zone" style={{ marginTop: 32 }}>

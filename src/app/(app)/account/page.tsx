@@ -1,9 +1,23 @@
 import { requireUser } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import { ROLE_LABEL } from "@/lib/labels";
-import { changePassword } from "@/app/actions/account";
+import { userImageUrl } from "@/lib/avatar";
+import { changePassword, updateProfile } from "@/app/actions/account";
+import PhotoInput from "@/components/PhotoInput";
 
 export default async function AccountPage() {
   const u = await requireUser();
+  const me = await prisma.user.findUnique({
+    where: { id: u.id },
+    select: {
+      id: true,
+      photoUrl: true,
+      phone: true,
+      student: { select: { sex: true, photoUrl: true, phone: true } },
+    },
+  });
+  const ownPhotoUrl = me?.student?.photoUrl ?? me?.photoUrl ?? null;
+  const phone = me?.student ? me.student.phone : me?.phone;
 
   return (
     <>
@@ -16,7 +30,31 @@ export default async function AccountPage() {
         </div>
       </div>
 
-      <form action={changePassword} className="form-section" style={{ maxWidth: 460 }}>
+      <form action={updateProfile} className="form-section" style={{ maxWidth: 560 }}>
+        <h3>Mon profil</h3>
+        <div className="stack">
+          <PhotoInput
+            label="Ma photo"
+            currentUrl={ownPhotoUrl}
+            fallbackUrl={me ? userImageUrl(me) : null}
+          />
+          {ownPhotoUrl && (
+            <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" name="removePhoto" style={{ width: "auto" }} />
+              Supprimer ma photo actuelle
+            </label>
+          )}
+          <label>
+            Numéro de téléphone
+            <input name="phone" type="tel" maxLength={40} placeholder="+261 34 00 000 00" defaultValue={phone ?? ""} />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button type="submit">Enregistrer mon profil</button>
+        </div>
+      </form>
+
+      <form action={changePassword} className="form-section" style={{ maxWidth: 560 }}>
         <h3>Changer mon mot de passe</h3>
         <div className="stack">
           <label>

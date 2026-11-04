@@ -5,13 +5,15 @@ import { requireUser } from "@/lib/session";
 import { ROLE_LABEL } from "@/lib/labels";
 import { updateUser } from "@/app/actions/users";
 import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
+import { userImageUrl } from "@/lib/avatar";
+import PhotoInput from "@/components/PhotoInput";
 
 export default async function EditUserPage({ params }: { params: { id: string } }) {
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   const user = await prisma.user.findUnique({
     where: { id: params.id },
     include: {
-      student: { select: { id: true, matricule: true } },
+      student: { select: { id: true, matricule: true, sex: true, photoUrl: true, phone: true, firstName: true, lastName: true } },
       teacher: { select: { id: true } },
     },
   });
@@ -27,6 +29,12 @@ export default async function EditUserPage({ params }: { params: { id: string } 
 
   const isSelf = user.id === me.id;
   const linked = !!(user.student || user.teacher);
+  const ownPhotoUrl = user.student?.photoUrl ?? user.photoUrl;
+  const phone = user.student ? user.student.phone : user.phone;
+  // Les comptes non-élèves enregistrent « Nom Prénom » : le premier mot est le nom, le reste le prénom
+  const [firstWord, ...restWords] = user.name.trim().split(/\s+/);
+  const lastName = user.student ? user.student.lastName : firstWord;
+  const firstName = user.student ? user.student.firstName : restWords.join(" ");
 
   return (
     <>
@@ -56,16 +64,37 @@ export default async function EditUserPage({ params }: { params: { id: string } 
         </div>
       )}
 
-      <form action={updateUser.bind(null, user.id)} className="form-section" style={{ maxWidth: 520 }}>
+      <form action={updateUser.bind(null, user.id)} className="form-section" style={{ maxWidth: 560 }}>
         <div className="stack">
           <label>
-            Nom complet
-            <input name="name" required maxLength={120} defaultValue={user.name} />
+            Nom *
+            <input name="lastName" required maxLength={80} defaultValue={lastName} />
+          </label>
+          <label>
+            Prénom {user.student ? "*" : ""}
+            <input name="firstName" required={!!user.student} maxLength={80} defaultValue={firstName} />
           </label>
           <label>
             Adresse e-mail
             <input name="email" type="email" required maxLength={160} defaultValue={user.email} />
           </label>
+          <label>
+            Numéro de téléphone
+            <input name="phone" type="tel" maxLength={40} placeholder="+261 34 00 000 00" defaultValue={phone ?? ""} />
+          </label>
+          <div>
+            <PhotoInput
+              label="Photo de l'utilisateur"
+              currentUrl={ownPhotoUrl}
+              fallbackUrl={userImageUrl(user)}
+            />
+            {ownPhotoUrl && (
+              <label style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
+                <input type="checkbox" name="removePhoto" style={{ width: "auto" }} />
+                Supprimer la photo actuelle
+              </label>
+            )}
+          </div>
           <label>
             Rôle
             <select name="role" required defaultValue={user.role} disabled={isSelf}>

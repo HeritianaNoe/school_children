@@ -3,6 +3,7 @@ import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { fmtAr } from "@/lib/format";
+import { userImageUrl } from "@/lib/avatar";
 
 export default async function TeachersPage() {
   await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
@@ -68,7 +69,11 @@ export default async function TeachersPage() {
               list.map((u) => (
                 <tr key={u.id} style={{ opacity: u.active ? 1 : 0.55 }}>
                   <td>
-                    <strong>{u.name}</strong>
+                    <div className="row">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={userImageUrl(u)} alt="" className="thumb" />
+                      <strong>{u.name}</strong>
+                    </div>
                   </td>
                   <td className="muted">{u.email}</td>
                   <td>{u.teacher ? fmtAr(Number(u.teacher.hourlyRate)) : "—"}</td>

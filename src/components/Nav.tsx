@@ -14,17 +14,18 @@ type NavSection = { title?: string; links: NavLink[] };
 
 export default function Nav({
   user,
-  unread = 0,
   studentId,
+  avatarUrl,
 }: {
   user: SessionUser;
-  unread?: number;
   studentId?: string | null;
+  avatarUrl?: string | null;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const staff = hasRole(user.role, ROLES.STAFF);
   const pedagogy = hasRole(user.role, ROLES.PEDAGOGY);
+  const direction = hasRole(user.role, ROLES.DIRECTION);
 
   // Ferme le menu mobile à chaque navigation et avec la touche Échap
   useEffect(() => setOpen(false), [pathname]);
@@ -50,7 +51,8 @@ export default function Nav({
     {
       links: [
         { href: "/dashboard", label: "Tableau de bord", icon: "dashboard", show: true },
-        { href: "/notifications", label: "Notifications", icon: "bell", show: true },
+        { href: "/timetable", label: "Emploi du temps", icon: "calendar", show: true },
+        { href: "/presents", label: "Élèves présents", icon: "users", show: true },
         { href: "/announcements", label: "Annonces", icon: "megaphone", show: true },
         { href: "/reclamations", label: "Réclamations", icon: "alert", show: true },
       ],
@@ -62,6 +64,7 @@ export default function Nav({
         { href: "/classes", label: "Classes", icon: "school", show: staff },
         { href: "/subjects", label: "Matières", icon: "book", show: pedagogy },
         { href: "/terms", label: "Périodes", icon: "calendar", show: staff },
+        { href: "/school-years", label: "Historique des années", icon: "history", show: direction },
         { href: "/assessments", label: "Notes et évaluations", icon: "clipboard", show: pedagogy },
         { href: "/sessions", label: "Séances et présences", icon: "calendarCheck", show: pedagogy },
       ],
@@ -129,11 +132,6 @@ export default function Nav({
                         <Icon name={l.icon} size={18} />
                       </span>
                       {l.label}
-                      {l.href === "/notifications" && unread > 0 && (
-                        <span className="badge" aria-label={`${unread} non lues`}>
-                          {unread}
-                        </span>
-                      )}
                     </Link>
                   );
                 })}
@@ -143,18 +141,22 @@ export default function Nav({
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-chip">
+          <Link href="/account" className="user-chip user-chip-link" onClick={close} title="Modifier mon compte" aria-label="Modifier mon compte">
             <span className="user-avatar">
-              <Icon name="user" size={20} />
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" />
+              ) : (
+                <Icon name="user" size={20} />
+              )}
             </span>
             <div className="user-meta">
               <strong title={user.name}>{user.name}</strong>
               {!sameAsRole && <span>{roleLabel}</span>}
             </div>
-          </div>
-          <Link href="/account" className="sidebar-account-link" onClick={close}>
-            <Icon name="pencil" size={14} />
-            Modifier mon compte
+            <span className="user-edit-icon" aria-hidden="true">
+              <Icon name="pencil" size={15} />
+            </span>
           </Link>
           <form action={logout}>
             <button type="submit" className="btn-secondary btn-sm logout-btn">

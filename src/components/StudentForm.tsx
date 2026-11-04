@@ -89,8 +89,13 @@ export default function StudentForm({
             <input name="address" maxLength={255} placeholder="Lot II …" defaultValue={student?.address ?? ""} />
           </label>
           <label>
-            Téléphone de l&apos;élève
-            <input name="phone" maxLength={40} placeholder="+261 34 …" defaultValue={student?.phone ?? ""} />
+            Adresse e-mail {student ? "de connexion" : "(facultatif)"}
+            <input
+              name="email"
+              type="email"
+              placeholder={student ? undefined : "générée automatiquement si vide"}
+              defaultValue={student?.email}
+            />
           </label>
           <label>
             Nom du parent ou tuteur
@@ -125,23 +130,36 @@ export default function StudentForm({
               defaultValue={toDateInput(student?.registeredAt ?? new Date())}
             />
           </label>
-          <label>
-            Adresse e-mail de connexion {student ? "" : "(facultatif)"}
-            <input
-              name="email"
-              type="email"
-              placeholder={student ? undefined : "générée automatiquement si vide"}
-              defaultValue={student?.email}
-            />
-          </label>
         </div>
         {!student && (
           <p className="muted" style={{ marginTop: 12 }}>
-            Le matricule est attribué automatiquement à l&apos;enregistrement. Le mot de passe initial est défini par
-            l&apos;établissement (voir « Mots de passe par défaut »).
+            Le matricule est attribué automatiquement à l&apos;enregistrement.
           </p>
         )}
       </div>
+
+      {!student && (
+        <div className="form-section">
+          <h3>Mot de passe par défaut</h3>
+          <div className="form-grid">
+            <label>
+              Mot de passe initial de l&apos;élève (facultatif)
+              <input
+                name="password"
+                type="text"
+                minLength={8}
+                maxLength={72}
+                autoComplete="off"
+                placeholder="8 caractères minimum"
+              />
+            </label>
+          </div>
+          <p className="muted" style={{ marginTop: 12 }}>
+            Si ce champ est vide, le mot de passe par défaut de l&apos;établissement est utilisé. L&apos;élève pourra le
+            modifier depuis son compte.
+          </p>
+        </div>
+      )}
 
       <div className="form-actions">
         <button type="submit" className="btn-success">

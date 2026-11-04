@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Icon from "@/components/Icons";
 import { requireUser } from "@/lib/session";
-import { createReclamation, updateReclamationStatus } from "@/app/actions/reclamations";
+import { updateReclamationStatus } from "@/app/actions/reclamations";
 
 const STATUS_LABEL: Record<string, string> = {
   OPEN: "Ouverte",
@@ -31,29 +32,13 @@ export default async function ReclamationsPage() {
               : "Vos réclamations adressées à l'administration"}
           </p>
         </div>
+        <Link href="/reclamations/new" className="btn">
+          <Icon name="plus" size={16} />
+          Nouvelle réclamation
+        </Link>
       </div>
 
-      <div className="card form-section" style={{ maxWidth: 640 }}>
-        <h3>Nouvelle réclamation</h3>
-        <p className="muted" style={{ marginBottom: 12, fontSize: "0.88rem" }}>
-          Envoyée par : <strong>{u.name}</strong> (compte connecté)
-        </p>
-        <form action={createReclamation} className="stack">
-          <label>
-            Objet
-            <input name="subject" required maxLength={200} placeholder="Ex. Problème de notes, absence…" />
-          </label>
-          <label>
-            Message
-            <textarea name="body" required rows={4} maxLength={4000} placeholder="Décrivez votre réclamation…" />
-          </label>
-          <div className="form-actions">
-            <button type="submit">Envoyer la réclamation</button>
-          </div>
-        </form>
-      </div>
-
-      <h2 style={{ marginTop: 28 }}>Liste</h2>
+      <h2 style={{ marginTop: 8 }}>Liste</h2>
       {list.length === 0 && <p className="muted">Aucune réclamation.</p>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

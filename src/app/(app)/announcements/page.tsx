@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Icon from "@/components/Icons";
 import { requireUser } from "@/lib/session";
-import { createAnnouncement, deleteAnnouncement } from "@/app/actions/announcements";
+import { deleteAnnouncement } from "@/app/actions/announcements";
 import ConfirmButton from "@/components/ConfirmButton";
+import PrintCardButton from "@/components/PrintCardButton";
 
 export default async function AnnouncementsPage() {
   const u = await requireUser();
@@ -22,42 +24,22 @@ export default async function AnnouncementsPage() {
           <h1>Annonces</h1>
           <p>Messages et informations de l&apos;établissement</p>
         </div>
+        {staff && (
+          <Link href="/announcements/new" className="btn">
+            <Icon name="plus" size={16} />
+            Nouvelle annonce
+          </Link>
+        )}
       </div>
 
-      {staff && (
-        <div className="card form-section" style={{ maxWidth: 640 }}>
-          <h3>Nouvelle annonce</h3>
-          <p className="muted" style={{ marginBottom: 12, fontSize: "0.88rem" }}>
-            Publiée par : <strong>{u.name}</strong> (compte connecté)
-          </p>
-          <form action={createAnnouncement} className="stack">
-            <label>
-              Titre
-              <input name="title" required maxLength={200} placeholder="Ex. Réunion parents-professeurs" />
-            </label>
-            <label>
-              Contenu
-              <textarea name="body" required rows={5} maxLength={4000} placeholder="Texte de l'annonce…" />
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: "row" }}>
-              <input name="published" type="checkbox" defaultChecked />
-              Publier immédiatement
-            </label>
-            <div className="form-actions">
-              <button type="submit">Publier l&apos;annonce</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <h2 style={{ marginTop: 28 }}>Annonces récentes</h2>
+      <h2 style={{ marginTop: 8 }}>Annonces récentes</h2>
       {list.length === 0 && <p className="muted">Aucune annonce pour le moment.</p>}
       {list.map((a) => {
         const isMine = a.authorId === u.id;
         return (
           <div key={a.id} className="card">
-            {/* Mpandefa / auteur en haut */}
-            <div className="muted" style={{ fontSize: "0.85rem", marginBottom: 6 }}>
+            {/* Auteur / date */}
+            <div className="muted" style={{ fontSize: "0.85rem", marginBottom: 8 }}>
               <strong style={{ color: "var(--text)" }}>
                 {isMine ? "Vous" : a.author.name}
               </strong>
@@ -71,19 +53,44 @@ export default async function AnnouncementsPage() {
                 </span>
               )}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: "1.08rem" }}>{a.title}</strong>
-                <div style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>{a.body}</div>
-              </div>
+
+            {/* Titre + contenu */}
+            <div style={{ marginBottom: 14 }}>
+              <strong style={{ fontSize: "1.08rem", display: "block" }}>{a.title}</strong>
+              <div style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>{a.body}</div>
+            </div>
+
+            {/* Actions : PDF · Imprimer · Supprimer */}
+            <div
+              className="no-print"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                alignItems: "center",
+                borderTop: "1px solid var(--border, #e5e7eb)",
+                paddingTop: 12,
+                marginTop: 4,
+              }}
+            >
+              <a
+                href={`/api/announcements/${a.id}/pdf`}
+                className="btn btn-sm"
+                title="Télécharger en PDF"
+              >
+                <Icon name="fileText" size={15} />
+                PDF
+              </a>
+              <PrintCardButton label="Imprimer" className="btn btn-sm" />
               {staff && (
-                <form action={deleteAnnouncement.bind(null, a.id)}>
+                <form action={deleteAnnouncement.bind(null, a.id)} style={{ marginLeft: "auto" }}>
                   <ConfirmButton
                     message={`Supprimer l'annonce « ${a.title} » ?`}
                     className="btn-ghost btn-sm"
                     title="Supprimer"
                   >
                     <Icon name="trash" size={16} />
+                    Supprimer
                   </ConfirmButton>
                 </form>
               )}

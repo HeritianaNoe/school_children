@@ -17,7 +17,7 @@ export async function createReclamation(fd: FormData) {
     subject: String(fd.get("subject") ?? "").trim(),
     body: String(fd.get("body") ?? "").trim(),
   });
-  if (!parsed.success) fail("/reclamations", "validation");
+  if (!parsed.success) fail("/reclamations/new", "validation");
 
   await prisma.reclamation.create({
     data: {
@@ -27,7 +27,8 @@ export async function createReclamation(fd: FormData) {
     },
   });
   revalidatePath("/reclamations");
-  done("/reclamations", "created");
+  revalidatePath("/dashboard");
+  done("/dashboard", "reclamation_created");
 }
 
 export async function updateReclamationStatus(id: string, fd: FormData) {

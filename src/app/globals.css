@@ -107,7 +107,7 @@ code {
 }
 .sidebar-nav a.active .nav-icon { color: #93c5fd; }
 .nav-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; flex-shrink: 0; }
-.nav-icon svg, .logout-btn svg, .sidebar-account-link svg { display: block; }
+.nav-icon svg, .logout-btn svg, .sidebar-account-link svg, .user-edit-icon svg { display: block; }
 .sidebar-nav a .badge { margin-left: auto; }
 .sidebar-nav a:focus-visible, .sidebar-footer a:focus-visible, .menu-toggle:focus-visible {
   outline: 2px solid #93c5fd; outline-offset: 2px;
@@ -130,6 +130,8 @@ code {
   background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: #dbeafe;
   border: 2px solid rgba(147, 197, 253, 0.35);
 }
+.user-avatar { overflow: hidden; }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .user-avatar-sm {
   width: 32px; height: 32px; background: var(--primary-soft); color: var(--primary);
   border: 1px solid #c7d8fb;
@@ -137,6 +139,13 @@ code {
 .user-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
 .user-meta strong { color: #fff; font-size: 0.9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-meta span { font-size: 0.78rem; color: #8fa0bd; }
+.user-chip-link {
+  text-decoration: none; padding: 6px; margin: -6px -6px 4px; border-radius: 10px;
+  transition: background 0.15s;
+}
+.user-chip-link:hover { background: rgba(255, 255, 255, 0.07); text-decoration: none; }
+.user-chip-link:hover .user-edit-icon { color: #bfdbfe; }
+.user-edit-icon { margin-left: auto; flex-shrink: 0; color: #93c5fd; display: inline-flex; }
 .sidebar-account-link {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
   font-size: 0.8rem; color: #93c5fd; text-decoration: none;
@@ -374,6 +383,8 @@ td .btn-ghost.btn-sm svg { display: block; }
   body { background: #fff; }
   .fiche { box-shadow: none; border: 1px solid #000; }
   .toast { display: none !important; }
+  /* Impression d'une seule carte (bouton « Imprimer » d'une carte) */
+  html.print-one .card:not(.print-target) { display: none !important; }
 }
 .fiche {
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
@@ -417,3 +428,30 @@ td .btn-ghost.btn-sm svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ───────── Boîte de dialogue de confirmation (centrée) ───────── */
+.confirm-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px);
+  animation: confirm-fade 0.15s ease-out;
+}
+.confirm-dialog {
+  width: 100%; max-width: 420px; text-align: center;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); padding: 28px 26px 22px;
+  border-top: 4px solid var(--primary);
+  animation: confirm-pop 0.18s ease-out;
+}
+.confirm-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; margin-bottom: 14px; border-radius: 50%;
+  background: var(--primary-soft); color: var(--primary);
+  box-shadow: 0 0 0 6px var(--primary-ring);
+}
+.confirm-dialog h2 { font-size: 1.15rem; color: var(--text); margin-bottom: 8px; }
+.confirm-dialog p { color: var(--text-2); line-height: 1.5; margin-bottom: 22px; overflow-wrap: anywhere; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.confirm-actions button { min-width: 120px; }
+@keyframes confirm-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes confirm-pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }

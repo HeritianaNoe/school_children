@@ -24,6 +24,21 @@ export default async function Dashboard() {
     }),
   ]);
 
+  // Réclamations non clôturées : toutes pour le personnel, uniquement les siennes sinon
+  const reclWhere = {
+    status: { not: "CLOSED" },
+    ...(staff ? {} : { authorId: u.id }),
+  };
+  const [reclTotal, reclamations] = await Promise.all([
+    prisma.reclamation.count({ where: reclWhere }),
+    prisma.reclamation.findMany({
+      where: reclWhere,
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { author: { select: { name: true } } },
+    }),
+  ]);
+
   const stats = staff
     ? [
         { label: "Élèves inscrits", icon: "graduation" as const, value: await prisma.student.count(), href: "/students" },
@@ -50,6 +65,7 @@ export default async function Dashboard() {
           href: "/sessions",
         },
         { label: "Évaluations", icon: "clipboard" as const, value: await prisma.assessment.count(), href: "/assessments" },
+        { label: "Réclamations en attente", icon: "alert" as const, value: reclTotal, href: "/reclamations" },
       ]
     : null;
 
@@ -89,6 +105,48 @@ export default async function Dashboard() {
             </Link>
           ))}
         </div>
+      )}
+
+      {/* Réclamations non clôturées — affichées seulement s'il y en a */}
+      {reclamations.length > 0 && (
+        <>
+          <div style={{ margin: "24px 0 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ margin: 0 }}>
+              Réclamations{" "}
+              <span className="tag tag-success" style={{ verticalAlign: "middle" }}>
+                {reclTotal}
+              </span>
+            </h2>
+            <Link href="/reclamations" className="btn-ghost btn-sm">
+              Toutes les réclamations
+              <Icon name="arrowRight" size={14} />
+            </Link>
+          </div>
+          {reclamations.map((r) => (
+            <Link
+              key={r.id}
+              href="/reclamations"
+              className="card"
+              style={{ display: "block", color: "inherit", textDecoration: "none", borderLeft: "4px solid #f59e0b" }}
+            >
+              <div className="muted" style={{ fontSize: "0.82rem", marginBottom: 4 }}>
+                {r.authorId === u.id ? "Vous" : r.author.name} · {r.createdAt.toLocaleString("fr-FR")} ·{" "}
+                {r.status === "IN_PROGRESS" ? "En cours" : "Ouverte"}
+              </div>
+              <strong>{r.subject}</strong>
+              <div style={{ marginTop: 6, fontSize: "0.92rem" }}>
+                {r.body.slice(0, 160)}
+                {r.body.length > 160 ? "…" : ""}
+              </div>
+              {r.response && (
+                <div style={{ marginTop: 6, fontSize: "0.88rem" }} className="muted">
+                  Réponse : {r.response.slice(0, 120)}
+                  {r.response.length > 120 ? "…" : ""}
+                </div>
+              )}
+            </Link>
+          ))}
+        </>
       )}
 
       {/* Annonces publiées — liens vers /announcements */}

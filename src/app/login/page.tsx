@@ -29,7 +29,9 @@ export default function LoginPage({
 
           {searchParams.error && (
             <p className="error" role="alert">
-              Email ou mot de passe incorrect.
+              {searchParams.error === "session"
+                ? "Votre session a expiré ou le compte n'existe plus. Veuillez vous reconnecter."
+                : "Email ou mot de passe incorrect."}
             </p>
           )}
 

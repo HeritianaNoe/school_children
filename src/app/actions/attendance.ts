@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, forbidden } from "@/lib/flash";
+import { toDateInput } from "@/lib/format";
 
 const studentSchema = z.object({
   sessionId: z.string(),
@@ -91,10 +92,13 @@ export async function saveTeacherAttendance(fd: FormData) {
   await requireUser(["ADMIN", "DIRECTOR"]);
   const d = teacherSchema.parse(Object.fromEntries(fd));
   const s = await prisma.session.findUniqueOrThrow({ where: { id: d.sessionId } });
+  // Les champs ne contiennent que l'heure (HH:MM) : on la rattache à la date de la séance
+  const day = toDateInput(s.startsAt);
+  const at = (t?: string) => (t && /^\d{2}:\d{2}$/.test(t) ? new Date(`${day}T${t}`) : null);
   const data = {
     status: d.status,
-    arrivedAt: d.arrivedAt ? new Date(d.arrivedAt) : null,
-    leftAt: d.leftAt ? new Date(d.leftAt) : null,
+    arrivedAt: at(d.arrivedAt),
+    leftAt: at(d.leftAt),
     note: d.note || null,
   };
   await prisma.teacherAttendance.upsert({

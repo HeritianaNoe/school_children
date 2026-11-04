@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
-import { fmtDate, fmtTime, toLocalInput } from "@/lib/format";
+import { fmtDate, fmtTime, toTimeInput } from "@/lib/format";
 import AttendanceForm from "@/components/AttendanceForm";
 import { saveTeacherAttendance } from "@/app/actions/attendance";
 import { changeSessionTeacher } from "@/app/actions/sessions";
@@ -66,14 +66,16 @@ export default async function SessionPage({ params }: { params: { id: string } }
                 ))}
               </select>
             </label>
-            <label>
-              Heure d&apos;arrivée réelle
-              <input type="datetime-local" name="arrivedAt" defaultValue={toLocalInput(ta?.arrivedAt)} />
-            </label>
-            <label>
-              Heure de départ
-              <input type="datetime-local" name="leftAt" defaultValue={toLocalInput(ta?.leftAt)} />
-            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <label>
+                Heure d&apos;arrivée réelle
+                <input type="time" name="arrivedAt" defaultValue={toTimeInput(ta?.arrivedAt)} />
+              </label>
+              <label>
+                Heure de départ
+                <input type="time" name="leftAt" defaultValue={toTimeInput(ta?.leftAt)} />
+              </label>
+            </div>
             <label>
               Remarque
               <input name="note" maxLength={300} defaultValue={ta?.note ?? ""} />

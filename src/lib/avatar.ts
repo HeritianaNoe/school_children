@@ -25,3 +25,16 @@ export function defaultAvatarUrl(sex: "M" | "F" | null | undefined, seed: string
 export function studentImageUrl(s: { id: string; sex: "M" | "F" | null; photoUrl: string | null }): string {
   return s.photoUrl ?? defaultAvatarUrl(s.sex, s.id);
 }
+
+/**
+ * Photo d'un utilisateur quelconque : photo du compte, sinon photo de l'élève lié,
+ * sinon avatar par défaut (choix stable d'après l'identifiant).
+ */
+export function userImageUrl(u: {
+  id: string;
+  photoUrl: string | null;
+  sex?: "M" | "F" | null;
+  student?: { sex: "M" | "F" | null; photoUrl: string | null } | null;
+}): string {
+  return u.student?.photoUrl ?? u.photoUrl ?? defaultAvatarUrl(u.student?.sex ?? u.sex, u.id);
+}

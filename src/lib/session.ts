@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { forbidden } from "./flash";
+import { prisma } from "./prisma";
 import type { Role } from "@prisma/client";
 
 export type SessionUser = { id: string; role: Role; name: string };
@@ -38,8 +39,16 @@ export async function getSession(): Promise<SessionUser | null> {
 }
 
 export async function requireUser(roles?: Role[]): Promise<SessionUser> {
-  const u = await getSession();
-  if (!u) redirect("/login");
+  const s = await getSession();
+  if (!s) redirect("/login");
+  // Le cookie peut survivre à la base de données (compte supprimé, base réinitialisée, compte désactivé) :
+  // on vérifie que le compte existe toujours, sinon les écritures échouent (clé étrangère).
+  const row = await prisma.user.findUnique({
+    where: { id: s.id },
+    select: { id: true, role: true, name: true, active: true },
+  });
+  if (!row || !row.active) redirect("/login?error=session");
+  const u: SessionUser = { id: row.id, role: row.role, name: row.name };
   if (roles && !roles.includes(u.role)) forbidden();
   return u;
 }

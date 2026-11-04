@@ -8,10 +8,12 @@ const MAX = 2 * 1024 * 1024;
 export default function PhotoInput({
   currentUrl,
   fallbackUrl,
+  label = "Photo de l'élève",
 }: {
   currentUrl?: string | null;
   /** Avatar par défaut affiché tant qu'aucune photo n'est choisie */
   fallbackUrl?: string | null;
+  label?: string;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -28,7 +30,7 @@ export default function PhotoInput({
       )}
       <div style={{ flex: 1, minWidth: 220 }}>
         <label>
-          Photo de l&apos;élève (JPG ou PNG, 2 Mo maximum)
+          {label} (JPG ou PNG, 2 Mo maximum)
           <input
             type="file"
             name="photo"

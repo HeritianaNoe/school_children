@@ -28,8 +28,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   });
   if (!s) return new Response("Élève introuvable", { status: 404 });
 
-  const staffOrTeacher = u.role === "ADMIN" || u.role === "DIRECTOR" || u.role === "TEACHER";
-  if (!staffOrTeacher && !(u.role === "STUDENT" && s.userId === u.id)) {
+  // Fiche d'inscription : direction, enseignants, ou l'élève lui-même
+  const direction = u.role === "ADMIN" || u.role === "DIRECTOR" || u.role === "TEACHER";
+  if (!direction && !(u.role === "STUDENT" && s.userId === u.id)) {
     return new Response("Accès refusé", { status: 403 });
   }
 

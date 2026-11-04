@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Icon from "@/components/Icons";
 import { requireUser, isStaff } from "@/lib/session";
-import { createSubject, updateSubject, deleteSubject } from "@/app/actions/subjects";
+import { createSubject, deleteSubject } from "@/app/actions/subjects";
 import ConfirmButton from "@/components/ConfirmButton";
 
 export default async function SubjectsPage() {
@@ -55,22 +56,14 @@ export default async function SubjectsPage() {
                 {canManage && (
                   <td>
                     <div className="row">
-                      <form action={updateSubject} className="inline-form">
-                        <input type="hidden" name="id" value={subject.id} />
-                        <input
-                          type="text"
-                          name="name"
-                          defaultValue={subject.name}
-                          required
-                          minLength={2}
-                          maxLength={80}
-                          style={{ width: 170 }}
-                          aria-label="Nom de la matière"
-                        />
-                        <button type="submit" className="btn-ghost btn-sm" title="Enregistrer">
-                          <Icon name="save" size={16} />
-                        </button>
-                      </form>
+                      <Link
+                        href={`/subjects/${subject.id}/edit`}
+                        className="btn-ghost btn-sm"
+                        title="Modifier"
+                        aria-label="Modifier"
+                      >
+                        <Icon name="pencil" size={16} />
+                      </Link>
                       <form action={deleteSubject}>
                         <input type="hidden" name="id" value={subject.id} />
                         <ConfirmButton

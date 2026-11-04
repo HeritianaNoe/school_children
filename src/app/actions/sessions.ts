@@ -1,5 +1,6 @@
 "use server";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, fail } from "@/lib/flash";
@@ -28,4 +29,23 @@ export async function changeSessionTeacher(fd: FormData) {
   const teacherId = String(fd.get("teacherId"));
   await prisma.session.update({ where: { id }, data: { teacherId } });
   done(`/sessions/${id}`, "session_teacher_changed");
+}
+
+export async function deleteSession(fd: FormData) {
+  await requireUser(["ADMIN", "DIRECTOR"]);
+  const id = String(fd.get("id") ?? "");
+  const s = await prisma.session.findUnique({ where: { id }, select: { id: true } });
+  if (!s) fail("/sessions", "not_found");
+
+  // Les présences des élèves et de l'enseignant sont supprimées avec la séance ;
+  // les commentaires sont conservés mais détachés de la séance.
+  await prisma.$transaction([
+    prisma.comment.updateMany({ where: { sessionId: id }, data: { sessionId: null } }),
+    prisma.studentAttendance.deleteMany({ where: { sessionId: id } }),
+    prisma.teacherAttendance.deleteMany({ where: { sessionId: id } }),
+    prisma.session.delete({ where: { id } }),
+  ]);
+  revalidatePath("/sessions");
+  revalidatePath("/dashboard");
+  done("/sessions", "session_deleted");
 }

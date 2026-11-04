@@ -22,7 +22,6 @@ const studentSchema = z.object({
   birthPlace: z.string().max(120).optional(),
   sex: z.enum(["M", "F"]).optional(),
   address: z.string().max(255).optional(),
-  phone: z.string().max(40).optional(),
   parentName: z.string().max(120).optional(),
   parentPhone: z.string().max(40).optional(),
   classeId: z.string().min(1),
@@ -82,7 +81,11 @@ export async function createStudent(fd: FormData) {
     if (taken) fail("/students/new", "email_taken");
   }
   const email = d.email ?? (await uniqueEmail(d.firstName, d.lastName));
-  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORDS.STUDENT, 10);
+  const rawPassword = String(fd.get("password") ?? "");
+  if (rawPassword !== "" && (rawPassword.length < 8 || rawPassword.length > 72)) {
+    fail("/students/new", "password_short");
+  }
+  const passwordHash = await bcrypt.hash(rawPassword || DEFAULT_PASSWORDS.STUDENT, 10);
 
   let studentId: string | null = null;
   // Le matricule est unique : en cas de collision (deux inscriptions simultanées), on recalcule.
@@ -98,7 +101,6 @@ export async function createStudent(fd: FormData) {
           birthPlace: d.birthPlace ?? null,
           sex: d.sex ?? null,
           address: d.address ?? null,
-          phone: d.phone ?? null,
           parentName: d.parentName ?? null,
           parentPhone: d.parentPhone ?? null,
           registeredAt: d.registeredAt ? parseDateInput(d.registeredAt) : new Date(),
@@ -180,7 +182,6 @@ export async function updateStudent(fd: FormData) {
         birthPlace: d.birthPlace ?? null,
         sex: d.sex ?? null,
         address: d.address ?? null,
-        phone: d.phone ?? null,
         parentName: d.parentName ?? null,
         parentPhone: d.parentPhone ?? null,
         registeredAt: d.registeredAt ? parseDateInput(d.registeredAt) : current.registeredAt,

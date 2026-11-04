@@ -2,7 +2,8 @@ import Link from "next/link";
 import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { createClasse } from "@/app/actions/classes";
+import { createClasse, deleteClasse } from "@/app/actions/classes";
+import ConfirmButton from "@/components/ConfirmButton";
 
 function defaultYear() {
   // Année scolaire à partir de septembre (ex. nov. 2026 → 2026-2027)
@@ -12,7 +13,9 @@ function defaultYear() {
 }
 
 export default async function ClassesPage() {
-  await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
+  const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
+  // Les actions sur les classes sont réservées à l'administrateur et au directeur
+  const canEdit = me.role === "ADMIN" || me.role === "DIRECTOR";
   const classes = await prisma.classe.findMany({
     include: { _count: { select: { students: true, courses: true } } },
     orderBy: [{ year: "desc" }, { name: "asc" }],
@@ -57,7 +60,7 @@ export default async function ClassesPage() {
               <th>Année scolaire</th>
               <th>Élèves</th>
               <th>Matières</th>
-              <th></th>
+              <th style={{ width: 130 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -70,9 +73,35 @@ export default async function ClassesPage() {
                 <td>{c._count.students}</td>
                 <td>{c._count.courses}</td>
                 <td>
-                  <Link href={`/classes/${c.id}`} className="btn-ghost btn-sm" title="Gérer" aria-label="Gérer">
-                    <Icon name="eye" size={16} />
-                  </Link>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <Link href={`/classes/${c.id}`} className="btn-ghost btn-sm" title="Gérer" aria-label="Gérer">
+                      <Icon name="eye" size={16} />
+                    </Link>
+                    {canEdit && (
+                      <>
+                        <Link
+                          href={`/classes/${c.id}/edit`}
+                          className="btn-ghost btn-sm"
+                          title="Modifier"
+                          aria-label="Modifier"
+                        >
+                          <Icon name="pencil" size={16} />
+                        </Link>
+                        <form action={deleteClasse}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="from" value="list" />
+                          <ConfirmButton
+                            message={`Supprimer la classe ${c.name} (${c.year}) ? Cette action est irréversible.`}
+                            className="btn-ghost btn-sm"
+                            title="Supprimer"
+                            disabled={c._count.students > 0}
+                          >
+                            <Icon name="trash" size={16} />
+                          </ConfirmButton>
+                        </form>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

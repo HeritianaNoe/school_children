@@ -40,10 +40,6 @@ export default async function NewAssessmentPage() {
         <form action={createAssessment} className="form-section" style={{ maxWidth: 560 }}>
           <div className="form-grid">
             <label>
-              Titre *
-              <input name="title" required maxLength={120} placeholder="Interrogation 1, Dictée…" />
-            </label>
-            <label>
               Type *
               <select name="type" defaultValue="TEST">
                 {Object.entries(ASSESSMENT_TYPE_LABEL).map(([v, l]) => (

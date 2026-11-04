@@ -78,11 +78,10 @@ export default async function StudentsPage({
         <table>
           <thead>
             <tr>
-              <th>Matricule</th>
               <th>Nom et prénom</th>
+              <th>Matricule</th>
               <th>Sexe</th>
               <th>Classe</th>
-              <th>Année scolaire</th>
               <th>Parent / tuteur</th>
               <th></th>
             </tr>
@@ -90,9 +89,6 @@ export default async function StudentsPage({
           <tbody>
             {list.map((s) => (
               <tr key={s.id}>
-                <td>
-                  <strong>{s.matricule}</strong>
-                </td>
                 <td>
                   <div className="row">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -103,10 +99,12 @@ export default async function StudentsPage({
                   </div>
                 </td>
                 <td>
+                  <strong>{s.matricule}</strong>
+                </td>
+                <td>
                   {s.sex ? <span className={`tag ${s.sex}`}>{SEX_LABEL[s.sex]}</span> : "—"}
                 </td>
                 <td>{s.classe.name}</td>
-                <td className="muted">{s.classe.year}</td>
                 <td>
                   {s.parentName || "—"}
                   {s.parentPhone && (
@@ -124,7 +122,7 @@ export default async function StudentsPage({
             ))}
             {list.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 32 }} className="muted">
+                <td colSpan={6} style={{ textAlign: "center", padding: 32 }} className="muted">
                   {q || classeId ? "Aucun élève ne correspond à votre recherche." : "Aucun élève inscrit pour le moment."}
                 </td>
               </tr>

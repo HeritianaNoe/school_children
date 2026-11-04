@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4aOQo4iKhb14GiNxN4gQyoqp64ZXkfFuEtum9iJaB1INd3xVTvFAh1orBf5xjcS
+\restrict GFek27ZBb21idgYXI6ZzsKgNoaI09381EchwYaDPUQPbLUeVUQsaE3JrJP4P54s
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -82,9 +82,9 @@ ALTER TYPE public."PayslipStatus" OWNER TO postgres;
 CREATE TYPE public."Role" AS ENUM (
     'ADMIN',
     'DIRECTOR',
-    'MANAGER',
     'TEACHER',
-    'STUDENT'
+    'STUDENT',
+    'MANAGER'
 );
 
 
@@ -408,11 +408,27 @@ CREATE TABLE public."User" (
     name text NOT NULL,
     role public."Role" NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    phone text,
+    "photoUrl" text
 );
 
 
 ALTER TABLE public."User" OWNER TO postgres;
+
+--
+-- Name: UserPhoto; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."UserPhoto" (
+    "userId" text NOT NULL,
+    data bytea NOT NULL,
+    mime text NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."UserPhoto" OWNER TO postgres;
 
 --
 -- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
@@ -437,7 +453,6 @@ ALTER TABLE public._prisma_migrations OWNER TO postgres;
 --
 
 COPY public."Announcement" (id, "authorId", title, body, published, "createdAt", "updatedAt") FROM stdin;
-cmvzdsj3s0006yxu9zoai91m7	cmvyzfuza0000zttel91xnrrd	Ho any Mpianatra rehetra	Ny talala 03 Novambra izao isika no miditra. 08ora ny fidirana	t	2026-11-02 14:55:44.824	2026-11-02 14:55:44.824
 \.
 
 
@@ -446,8 +461,8 @@ cmvzdsj3s0006yxu9zoai91m7	cmvyzfuza0000zttel91xnrrd	Ho any Mpianatra rehetra	Ny 
 --
 
 COPY public."Assessment" (id, "courseId", "termId", title, type, "maxScore", coefficient, date) FROM stdin;
-cmvyzfv3t0042ztter4xfoid6	cmvyzfv090009ztte6jbxcq55	cmvyzfv3r0040zttewjnktxlm	Interro 1	TEST	20	1	2026-10-30 00:00:00
-cmvyzfv3y004ezttebdw8hkxt	cmvyzfv0d000bztteu9gr1qpe	cmvyzfv3r0040zttewjnktxlm	Dictée 1	TEST	20	1	2026-10-30 00:00:00
+cmw0jnuuc004210tzdm5a4rwk	cmw0jnujt000910tzxjp3of18	cmw0jnuua004010tz96c12b3z	Interro 1	TEST	20	1	2026-10-31 00:00:00
+cmw0jnuuj004e10tzb91pw64x	cmw0jnujw000b10tzve09c1p9	cmw0jnuua004010tz96c12b3z	Dictée 1	TEST	20	1	2026-10-31 00:00:00
 \.
 
 
@@ -456,10 +471,10 @@ cmvyzfv3y004ezttebdw8hkxt	cmvyzfv0d000bztteu9gr1qpe	cmvyzfv3r0040zttewjnktxlm	Di
 --
 
 COPY public."Classe" (id, name, year) FROM stdin;
-cmvyzfv030005ztteij3n5olv	6ème A	2026-2027
-cmvz1luf200003sho478hv6ac	4eme A	2026-2027
-cmvz1mpwh00013sho96emyhp9	5eme A	2026-2027
-cmvz1n33000023shoarvcrl8l	3eme A	2026-2027
+cmw0jnujm000510tz3cpm0wq4	6ème A	2026-2027
+cmw0jygx1000010eyzupjc7sd	5ème A	2026-2027
+cmw0jzmng000510eyysjgiz1o	4ème A	2026-2027
+cmw0k04gy000a10eyrfr6l201	3ème A	2026-2027
 \.
 
 
@@ -476,10 +491,14 @@ COPY public."Comment" (id, "authorId", body, "studentId", "teacherId", "sessionI
 --
 
 COPY public."Course" (id, "classeId", "subjectId", "teacherId", coefficient) FROM stdin;
-cmvyzfv090009ztte6jbxcq55	cmvyzfv030005ztteij3n5olv	cmvyzfv050006ztteqt8m3ash	cmvyzfuzo0001zttermxozw9e	3
-cmvyzfv0d000bztteu9gr1qpe	cmvyzfv030005ztteij3n5olv	cmvyzfv070007zttej8sqa7tk	cmvyzfuzz0003ztte1wyqodzm	2
-cmvz1nle200043shoe02onccp	cmvz1n33000023shoarvcrl8l	cmvyzruvh0002epmimu4d2rsv	cmvyzfuzo0001zttermxozw9e	1
-cmvzc0cds0001xqbg10gilq6z	cmvz1n33000023shoarvcrl8l	cmvyzfv070007zttej8sqa7tk	cmvyzfuzo0001zttermxozw9e	1
+cmw0jnujt000910tzxjp3of18	cmw0jnujm000510tz3cpm0wq4	cmw0jnujp000610tzjjppc0b0	cmw0jnujd000110tz96pjeedm	3
+cmw0jnujw000b10tzve09c1p9	cmw0jnujm000510tz3cpm0wq4	cmw0jnujr000710tz8rm72bb4	cmw0jnujj000310tzjg6yepxc	2
+cmw0jyrft000210ey0qpualty	cmw0jygx1000010eyzupjc7sd	cmw0jnujp000610tzjjppc0b0	cmw0jnujd000110tz96pjeedm	1
+cmw0jywr9000410eyakcoqd2h	cmw0jygx1000010eyzupjc7sd	cmw0jnujr000710tz8rm72bb4	cmw0jnujd000110tz96pjeedm	1
+cmw0jzr69000710eyihx1t1er	cmw0jzmng000510eyysjgiz1o	cmw0jnujp000610tzjjppc0b0	cmw0jnujj000310tzjg6yepxc	1
+cmw0jzu5s000910ey9arum1f6	cmw0jzmng000510eyysjgiz1o	cmw0jnujr000710tz8rm72bb4	cmw0jnujj000310tzjg6yepxc	1
+cmw0k0air000c10eynjwvmat9	cmw0k04gy000a10eyrfr6l201	cmw0jnujr000710tz8rm72bb4	cmw0jnujd000110tz96pjeedm	1
+cmw0k0die000e10eygljpykd7	cmw0k04gy000a10eyrfr6l201	cmw0jnujp000610tzjjppc0b0	cmw0jnujd000110tz96pjeedm	1
 \.
 
 
@@ -488,26 +507,26 @@ cmvzc0cds0001xqbg10gilq6z	cmvz1n33000023shoarvcrl8l	cmvyzfv070007zttej8sqa7tk	cm
 --
 
 COPY public."Grade" (id, "assessmentId", "studentId", score, "updatedAt") FROM stdin;
-cmvyzfv3v0043zttew5eg6ghw	cmvyzfv3t0042ztter4xfoid6	cmvyzfv0g000cztte5m5c431s	8	2026-11-02 08:13:59.228
-cmvyzfv3v0044zttex3zh1gvi	cmvyzfv3t0042ztter4xfoid6	cmvyzfv0n000eztteo67wygej	15	2026-11-02 08:13:59.228
-cmvyzfv3v0045zttexwntr067	cmvyzfv3t0042ztter4xfoid6	cmvyzfv0t000gzttek8qsqyjj	10	2026-11-02 08:13:59.228
-cmvyzfv3v0046zttenz12wurc	cmvyzfv3t0042ztter4xfoid6	cmvyzfv0x000iztteda8zx3n4	17	2026-11-02 08:13:59.228
-cmvyzfv3v0047ztteagkda16y	cmvyzfv3t0042ztter4xfoid6	cmvyzfv12000kztte65rwntv6	12	2026-11-02 08:13:59.228
-cmvyzfv3v0048zttejuy74u1f	cmvyzfv3t0042ztter4xfoid6	cmvyzfv16000mztte09liwvf4	19	2026-11-02 08:13:59.228
-cmvyzfv3v0049zttewic8zqqq	cmvyzfv3t0042ztter4xfoid6	cmvyzfv1b000ozttet72vj07i	14	2026-11-02 08:13:59.228
-cmvyzfv3v004aztte128g6vwi	cmvyzfv3t0042ztter4xfoid6	cmvyzfv1f000qzttep2y7iefp	9	2026-11-02 08:13:59.228
-cmvyzfv3v004bzttew872hhwb	cmvyzfv3t0042ztter4xfoid6	cmvyzfv1i000szttegzduqxo0	16	2026-11-02 08:13:59.228
-cmvyzfv3v004czttezoddbume	cmvyzfv3t0042ztter4xfoid6	cmvyzfv1m000uztteclw6s589	\N	2026-11-02 08:13:59.228
-cmvyzfv40004fztte2etcwcmx	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv0g000cztte5m5c431s	8	2026-11-02 08:13:59.232
-cmvyzfv40004gztteu87zch8f	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv0n000eztteo67wygej	15	2026-11-02 08:13:59.232
-cmvyzfv40004hzttexn0caxki	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv0t000gzttek8qsqyjj	10	2026-11-02 08:13:59.232
-cmvyzfv40004izttewxl22a9t	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv0x000iztteda8zx3n4	17	2026-11-02 08:13:59.232
-cmvyzfv40004jzttewviqldc6	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv12000kztte65rwntv6	12	2026-11-02 08:13:59.232
-cmvyzfv40004kztte0qlgt6xc	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv16000mztte09liwvf4	19	2026-11-02 08:13:59.232
-cmvyzfv40004lzttem4d639lo	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv1b000ozttet72vj07i	14	2026-11-02 08:13:59.232
-cmvyzfv40004mztteobj3tv8t	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv1f000qzttep2y7iefp	9	2026-11-02 08:13:59.232
-cmvyzfv40004nzttet8ghzzqf	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv1i000szttegzduqxo0	16	2026-11-02 08:13:59.232
-cmvyzfv40004oztte3wf0eerp	cmvyzfv3y004ezttebdw8hkxt	cmvyzfv1m000uztteclw6s589	\N	2026-11-02 08:13:59.232
+cmw0jnuuf004310tz7ib35jpb	cmw0jnuuc004210tzdm5a4rwk	cmw0jnujy000c10tzqc79ta65	8	2026-11-03 10:27:50.631
+cmw0jnuuf004410tzf3g7wyei	cmw0jnuuc004210tzdm5a4rwk	cmw0jnuk5000e10tzk0a9wod2	15	2026-11-03 10:27:50.631
+cmw0jnuuf004510tz37gtcnpo	cmw0jnuuc004210tzdm5a4rwk	cmw0jnuk9000g10tz0fnx9k71	10	2026-11-03 10:27:50.631
+cmw0jnuuf004610tz69fpqain	cmw0jnuuc004210tzdm5a4rwk	cmw0jnukd000i10tzi3ynhv8y	17	2026-11-03 10:27:50.631
+cmw0jnuuf004710tzd7g42sed	cmw0jnuuc004210tzdm5a4rwk	cmw0jnukh000k10tzii2sbdnk	12	2026-11-03 10:27:50.631
+cmw0jnuuf004810tzvotmcpe3	cmw0jnuuc004210tzdm5a4rwk	cmw0jnukl000m10tzqnu2x568	19	2026-11-03 10:27:50.631
+cmw0jnuuf004910tz5bxqep5m	cmw0jnuuc004210tzdm5a4rwk	cmw0jnuoj000o10tz4g0w14e9	14	2026-11-03 10:27:50.631
+cmw0jnuuf004a10tzn1447xhn	cmw0jnuuc004210tzdm5a4rwk	cmw0jnuos000q10tzd6lhf3kv	9	2026-11-03 10:27:50.631
+cmw0jnuuf004b10tzv7761fe7	cmw0jnuuc004210tzdm5a4rwk	cmw0jnup0000s10tzzyu2f7pe	16	2026-11-03 10:27:50.631
+cmw0jnuuf004c10tzgihlkt54	cmw0jnuuc004210tzdm5a4rwk	cmw0jnup5000u10tz8uwx7vhk	\N	2026-11-03 10:27:50.631
+cmw0jnuxh004f10tzt71yq7xa	cmw0jnuuj004e10tzb91pw64x	cmw0jnujy000c10tzqc79ta65	8	2026-11-03 10:27:50.741
+cmw0jnuxh004g10tzwi2xr7cl	cmw0jnuuj004e10tzb91pw64x	cmw0jnuk5000e10tzk0a9wod2	15	2026-11-03 10:27:50.741
+cmw0jnuxh004h10tzmhuh02e2	cmw0jnuuj004e10tzb91pw64x	cmw0jnuk9000g10tz0fnx9k71	10	2026-11-03 10:27:50.741
+cmw0jnuxh004i10tzehsq97za	cmw0jnuuj004e10tzb91pw64x	cmw0jnukd000i10tzi3ynhv8y	17	2026-11-03 10:27:50.741
+cmw0jnuxh004j10tz1ga5c3yj	cmw0jnuuj004e10tzb91pw64x	cmw0jnukh000k10tzii2sbdnk	12	2026-11-03 10:27:50.741
+cmw0jnuxh004k10tzly7i3r19	cmw0jnuuj004e10tzb91pw64x	cmw0jnukl000m10tzqnu2x568	19	2026-11-03 10:27:50.741
+cmw0jnuxh004l10tzj4edqb4v	cmw0jnuuj004e10tzb91pw64x	cmw0jnuoj000o10tz4g0w14e9	14	2026-11-03 10:27:50.741
+cmw0jnuxh004m10tzworxz7cd	cmw0jnuuj004e10tzb91pw64x	cmw0jnuos000q10tzd6lhf3kv	9	2026-11-03 10:27:50.741
+cmw0jnuxh004n10tz2hxqfmo7	cmw0jnuuj004e10tzb91pw64x	cmw0jnup0000s10tzzyu2f7pe	16	2026-11-03 10:27:50.741
+cmw0jnuxh004o10tzh7oenzh5	cmw0jnuuj004e10tzb91pw64x	cmw0jnup5000u10tz8uwx7vhk	\N	2026-11-03 10:27:50.741
 \.
 
 
@@ -524,8 +543,6 @@ COPY public."Notification" (id, "userId", type, title, body, data, "dedupeKey", 
 --
 
 COPY public."Payslip" (id, "teacherId", month, "totalMinutes", "hourlyRate", gross, status, "createdAt") FROM stdin;
-cmvzc1mee0005xqbg5ggnqfpq	cmvyzfuzz0003ztte1wyqodzm	2026-11	100	9000.00	15000.00	DRAFT	2026-11-02 14:06:49.766
-cmvzc1mdv0003xqbgpo9ldlgp	cmvyzfuzo0001zttermxozw9e	2026-11	120	8000.00	16000.00	DRAFT	2026-11-02 14:06:49.748
 \.
 
 
@@ -542,14 +559,14 @@ COPY public."Reclamation" (id, "authorId", subject, body, status, response, "cre
 --
 
 COPY public."Session" (id, "courseId", "teacherId", "startsAt", "endsAt", status) FROM stdin;
-cmvyzfv1q000xzttej94trxn5	cmvyzfv090009ztte6jbxcq55	cmvyzfuzo0001zttermxozw9e	2026-11-02 08:00:00	2026-11-02 10:00:00	DONE
-cmvyzfv1t000zztte8k4sifq3	cmvyzfv0d000bztteu9gr1qpe	cmvyzfuzz0003ztte1wyqodzm	2026-11-01 08:00:00	2026-11-01 10:00:00	DONE
-cmvyzfv1w0011zttefr7opj73	cmvyzfv090009ztte6jbxcq55	cmvyzfuzo0001zttermxozw9e	2026-10-31 08:00:00	2026-10-31 10:00:00	DONE
-cmvyzfv1x0013zttewyv9vlmx	cmvyzfv0d000bztteu9gr1qpe	cmvyzfuzz0003ztte1wyqodzm	2026-10-30 08:00:00	2026-10-30 10:00:00	DONE
-cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv090009ztte6jbxcq55	cmvyzfuzo0001zttermxozw9e	2026-10-29 08:00:00	2026-10-29 10:00:00	DONE
-cmvyzfv210017ztte2p7fhwyb	cmvyzfv0d000bztteu9gr1qpe	cmvyzfuzz0003ztte1wyqodzm	2026-10-28 08:00:00	2026-10-28 10:00:00	DONE
-cmvyzfv230019zttetcz4fifr	cmvyzfv090009ztte6jbxcq55	cmvyzfuzo0001zttermxozw9e	2026-10-27 08:00:00	2026-10-27 10:00:00	DONE
-cmvyzfv25001bztteq2jc6y1s	cmvyzfv0d000bztteu9gr1qpe	cmvyzfuzz0003ztte1wyqodzm	2026-10-26 08:00:00	2026-10-26 10:00:00	DONE
+cmw0jnupa000x10tzqoa6m66t	cmw0jnujt000910tzxjp3of18	cmw0jnujd000110tz96pjeedm	2026-11-03 08:00:00	2026-11-03 10:00:00	DONE
+cmw0jnupe000z10tz5auynnpq	cmw0jnujw000b10tzve09c1p9	cmw0jnujj000310tzjg6yepxc	2026-11-02 08:00:00	2026-11-02 10:00:00	DONE
+cmw0jnupg001110tzy9fa2d6y	cmw0jnujt000910tzxjp3of18	cmw0jnujd000110tz96pjeedm	2026-11-01 08:00:00	2026-11-01 10:00:00	DONE
+cmw0jnupi001310tzb6lmepzs	cmw0jnujw000b10tzve09c1p9	cmw0jnujj000310tzjg6yepxc	2026-10-31 08:00:00	2026-10-31 10:00:00	DONE
+cmw0jnupk001510tz6gi3wku3	cmw0jnujt000910tzxjp3of18	cmw0jnujd000110tz96pjeedm	2026-10-30 08:00:00	2026-10-30 10:00:00	DONE
+cmw0jnupm001710tztttbpn1x	cmw0jnujw000b10tzve09c1p9	cmw0jnujj000310tzjg6yepxc	2026-10-29 08:00:00	2026-10-29 10:00:00	DONE
+cmw0jnupp001910tzs75ps3s9	cmw0jnujt000910tzxjp3of18	cmw0jnujd000110tz96pjeedm	2026-10-28 08:00:00	2026-10-28 10:00:00	DONE
+cmw0jnupr001b10tzdah6tme9	cmw0jnujw000b10tzve09c1p9	cmw0jnujj000310tzjg6yepxc	2026-10-27 08:00:00	2026-10-27 10:00:00	DONE
 \.
 
 
@@ -558,16 +575,16 @@ cmvyzfv25001bztteq2jc6y1s	cmvyzfv0d000bztteu9gr1qpe	cmvyzfuzz0003ztte1wyqodzm	20
 --
 
 COPY public."Student" (id, "userId", matricule, "firstName", "lastName", "birthDate", "birthPlace", sex, address, phone, "parentName", "parentPhone", "photoUrl", "registeredAt", "classeId") FROM stdin;
-cmvyzfv0g000cztte5m5c431s	cmvyzfv0g000dztten6ece593	M26-001	Andry	Randria	2014-01-05 00:00:00	Antananarivo	M	Lot II 10 Antananarivo	+261 34 00 00 00	Parent de Andry	+261 32 11 22 00	\N	2026-10-03 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv0n000eztteo67wygej	cmvyzfv0n000fztteli5b294i	M26-002	Bodo	Ravelo	2014-02-06 00:00:00	Antananarivo	F	Lot II 11 Antananarivo	+261 34 00 00 01	Parent de Bodo	+261 32 11 22 01	\N	2026-10-04 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv0t000gzttek8qsqyjj	cmvyzfv0t000hzttegcyxiq9r	M26-003	Chloé	Rakoto	2014-03-07 00:00:00	Antananarivo	M	Lot II 12 Antananarivo	+261 34 00 00 02	Parent de Chloé	+261 32 11 22 02	\N	2026-10-05 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv0x000iztteda8zx3n4	cmvyzfv0x000jzttey3gbdhvb	M26-004	Dina	Rasoa	2014-04-08 00:00:00	Antananarivo	F	Lot II 13 Antananarivo	+261 34 00 00 03	Parent de Dina	+261 32 11 22 03	\N	2026-10-06 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv12000kztte65rwntv6	cmvyzfv12000lzttevlwrbkwp	M26-005	Eric	Andrianina	2014-05-09 00:00:00	Antananarivo	M	Lot II 14 Antananarivo	+261 34 00 00 04	Parent de Eric	+261 32 11 22 04	\N	2026-10-07 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv16000mztte09liwvf4	cmvyzfv17000nzttea45nasii	M26-006	Faly	Hery	2014-06-10 00:00:00	Antananarivo	F	Lot II 15 Antananarivo	+261 34 00 00 05	Parent de Faly	+261 32 11 22 05	\N	2026-10-08 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv1b000ozttet72vj07i	cmvyzfv1b000pztte5uwl381c	M26-007	Gaby	Razafy	2014-07-11 00:00:00	Antananarivo	M	Lot II 16 Antananarivo	+261 34 00 00 06	Parent de Gaby	+261 32 11 22 06	\N	2026-10-09 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv1f000qzttep2y7iefp	cmvyzfv1f000rztte8b4vgds3	M26-008	Hery	Ranaivo	2014-08-12 00:00:00	Antananarivo	F	Lot II 17 Antananarivo	+261 34 00 00 07	Parent de Hery	+261 32 11 22 07	\N	2026-10-10 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv1i000szttegzduqxo0	cmvyzfv1j000tztte1mfud795	M26-009	Iony	Rabe	2014-09-13 00:00:00	Antananarivo	M	Lot II 18 Antananarivo	+261 34 00 00 08	Parent de Iony	+261 32 11 22 08	\N	2026-10-11 09:00:00	cmvyzfv030005ztteij3n5olv
-cmvyzfv1m000uztteclw6s589	cmvyzfv1m000vztte13n25ixt	M26-010	Jao	Rakotomalala	2014-10-14 00:00:00	Antananarivo	F	Lot II 19 Antananarivo	+261 34 00 00 09	Parent de Jao	+261 32 11 22 09	\N	2026-10-12 09:00:00	cmvyzfv030005ztteij3n5olv
+cmw0jnujy000c10tzqc79ta65	cmw0jnujz000d10tzmcc1lz01	M26-001	Andry	Randria	2014-01-05 00:00:00	Antananarivo	M	Lot II 10 Antananarivo	+261 34 00 00 00	Parent de Andry	+261 32 11 22 00	\N	2026-10-04 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnuk5000e10tzk0a9wod2	cmw0jnuk5000f10tzy2k1w2bm	M26-002	Bodo	Ravelo	2014-02-06 00:00:00	Antananarivo	F	Lot II 11 Antananarivo	+261 34 00 00 01	Parent de Bodo	+261 32 11 22 01	\N	2026-10-05 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnuk9000g10tz0fnx9k71	cmw0jnuk9000h10tzx2l9rrjp	M26-003	Chloé	Rakoto	2014-03-07 00:00:00	Antananarivo	M	Lot II 12 Antananarivo	+261 34 00 00 02	Parent de Chloé	+261 32 11 22 02	\N	2026-10-06 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnukd000i10tzi3ynhv8y	cmw0jnukd000j10tzxwm6sqmw	M26-004	Dina	Rasoa	2014-04-08 00:00:00	Antananarivo	F	Lot II 13 Antananarivo	+261 34 00 00 03	Parent de Dina	+261 32 11 22 03	\N	2026-10-07 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnukh000k10tzii2sbdnk	cmw0jnukh000l10tzwzhf67rc	M26-005	Eric	Andrianina	2014-05-09 00:00:00	Antananarivo	M	Lot II 14 Antananarivo	+261 34 00 00 04	Parent de Eric	+261 32 11 22 04	\N	2026-10-08 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnukl000m10tzqnu2x568	cmw0jnukl000n10tz4wumubxn	M26-006	Faly	Hery	2014-06-10 00:00:00	Antananarivo	F	Lot II 15 Antananarivo	+261 34 00 00 05	Parent de Faly	+261 32 11 22 05	\N	2026-10-09 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnuoj000o10tz4g0w14e9	cmw0jnuoj000p10tzcor84fr5	M26-007	Gaby	Razafy	2014-07-11 00:00:00	Antananarivo	M	Lot II 16 Antananarivo	+261 34 00 00 06	Parent de Gaby	+261 32 11 22 06	\N	2026-10-10 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnuos000q10tzd6lhf3kv	cmw0jnuos000r10tz9rxljabc	M26-008	Hery	Ranaivo	2014-08-12 00:00:00	Antananarivo	F	Lot II 17 Antananarivo	+261 34 00 00 07	Parent de Hery	+261 32 11 22 07	\N	2026-10-11 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnup0000s10tzzyu2f7pe	cmw0jnup1000t10tzmhm323px	M26-009	Iony	Rabe	2014-09-13 00:00:00	Antananarivo	M	Lot II 18 Antananarivo	+261 34 00 00 08	Parent de Iony	+261 32 11 22 08	\N	2026-10-12 09:00:00	cmw0jnujm000510tz3cpm0wq4
+cmw0jnup5000u10tz8uwx7vhk	cmw0jnup6000v10tzazwiv3la	M26-010	Jao	Rakotomalala	2014-10-14 00:00:00	Antananarivo	F	Lot II 19 Antananarivo	+261 34 00 00 09	Parent de Jao	+261 32 11 22 09	\N	2026-10-13 09:00:00	cmw0jnujm000510tz3cpm0wq4
 \.
 
 
@@ -576,86 +593,86 @@ cmvyzfv1m000uztteclw6s589	cmvyzfv1m000vztte13n25ixt	M26-010	Jao	Rakotomalala	201
 --
 
 COPY public."StudentAttendance" (id, "sessionId", "studentId", status, "minutesLate", note, "markedAt") FROM stdin;
-cmvyzfv27001cztteqexwovzo	cmvyzfv1q000xzttej94trxn5	cmvyzfv0g000cztte5m5c431s	LATE	15	\N	2026-11-02 08:13:59.168
-cmvyzfv27001dzttec0zjq58o	cmvyzfv1q000xzttej94trxn5	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001eztte0dkww0f2	cmvyzfv1q000xzttej94trxn5	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001fztteu2jz6eby	cmvyzfv1q000xzttej94trxn5	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001gztteuv18k24v	cmvyzfv1q000xzttej94trxn5	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001hzttek1grd4k2	cmvyzfv1q000xzttej94trxn5	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001izttevzbojhvg	cmvyzfv1q000xzttej94trxn5	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001jzttetigls0gw	cmvyzfv1q000xzttej94trxn5	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001kzttec92r1a9u	cmvyzfv1q000xzttej94trxn5	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv27001lztteqwjfv3b1	cmvyzfv1q000xzttej94trxn5	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.168
-cmvyzfv2t001ozttebrl478ws	cmvyzfv1t000zztte8k4sifq3	cmvyzfv0g000cztte5m5c431s	LATE	15	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001pzttet3xzbuty	cmvyzfv1t000zztte8k4sifq3	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001qztte97j5v19p	cmvyzfv1t000zztte8k4sifq3	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001rztteo6ea2x3j	cmvyzfv1t000zztte8k4sifq3	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001szttezggc0qaz	cmvyzfv1t000zztte8k4sifq3	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001tzttejsmurkui	cmvyzfv1t000zztte8k4sifq3	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001uzttegux5f4yw	cmvyzfv1t000zztte8k4sifq3	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001vztte12xcxqwb	cmvyzfv1t000zztte8k4sifq3	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001wzttezulqupkw	cmvyzfv1t000zztte8k4sifq3	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2t001xzttenzxbpkxf	cmvyzfv1t000zztte8k4sifq3	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.189
-cmvyzfv2x0020ztte29mfsf6l	cmvyzfv1w0011zttefr7opj73	cmvyzfv0g000cztte5m5c431s	LATE	15	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0021zttewnixqa6a	cmvyzfv1w0011zttefr7opj73	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0022ztte8ukhcf8z	cmvyzfv1w0011zttefr7opj73	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0023zttey1gbi6g1	cmvyzfv1w0011zttefr7opj73	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0024zttel6hvtw9w	cmvyzfv1w0011zttefr7opj73	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0025zttew9z2teo3	cmvyzfv1w0011zttefr7opj73	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0026ztteju1ykhmi	cmvyzfv1w0011zttefr7opj73	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0027ztterjjr5j5y	cmvyzfv1w0011zttefr7opj73	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0028ztteuk6nyj11	cmvyzfv1w0011zttefr7opj73	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv2x0029zttejej2fdmw	cmvyzfv1w0011zttefr7opj73	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.193
-cmvyzfv31002cztte9luhsbmt	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv0g000cztte5m5c431s	LATE	15	\N	2026-11-02 08:13:59.197
-cmvyzfv31002dzttey31ansre	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002eztte60y8ph36	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002fzttep75fwmds	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002gzttebc2sqnpa	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002hzttewhcurteo	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002izttea0305ssw	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002jztteafpft9tz	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002kzttes7djna0i	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv31002lzttesveyqm52	cmvyzfv1x0013zttewyv9vlmx	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.197
-cmvyzfv35002oztte82u8pj6n	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv0g000cztte5m5c431s	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002pzttew3ypjvip	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002qzttem56lpd9p	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002rzttesdozowz4	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002szttez2mrghb7	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002tztte89str7kb	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002uzttedhxaia2z	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002vztte3n5dtp8n	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv35002wzttehki9cahv	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv36002xztteeeujiws7	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.202
-cmvyzfv3a0030ztteisusrfc6	cmvyzfv210017ztte2p7fhwyb	cmvyzfv0g000cztte5m5c431s	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0031zttecprfbaza	cmvyzfv210017ztte2p7fhwyb	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0032zttek8nm7no8	cmvyzfv210017ztte2p7fhwyb	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0033ztte1txbvhmp	cmvyzfv210017ztte2p7fhwyb	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0034ztteepad1h3l	cmvyzfv210017ztte2p7fhwyb	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0035ztte1krmwqcp	cmvyzfv210017ztte2p7fhwyb	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0036ztte24ozw2n3	cmvyzfv210017ztte2p7fhwyb	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0037zttetnt1z456	cmvyzfv210017ztte2p7fhwyb	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0038ztteihov9bhb	cmvyzfv210017ztte2p7fhwyb	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3a0039ztte2dqxgndw	cmvyzfv210017ztte2p7fhwyb	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.206
-cmvyzfv3e003cztten6ojmyvl	cmvyzfv230019zttetcz4fifr	cmvyzfv0g000cztte5m5c431s	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003dzttebq45745a	cmvyzfv230019zttetcz4fifr	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003eztteb4tltnka	cmvyzfv230019zttetcz4fifr	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003fztte5a6ux0rb	cmvyzfv230019zttetcz4fifr	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003gztte544n94b9	cmvyzfv230019zttetcz4fifr	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003hztteqx04rqgj	cmvyzfv230019zttetcz4fifr	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003iztteievil95a	cmvyzfv230019zttetcz4fifr	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003jztteog003r08	cmvyzfv230019zttetcz4fifr	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003kzttel2igfqn4	cmvyzfv230019zttetcz4fifr	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3e003lztteg29804fw	cmvyzfv230019zttetcz4fifr	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.211
-cmvyzfv3i003oztterl629mth	cmvyzfv25001bztteq2jc6y1s	cmvyzfv0g000cztte5m5c431s	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003pzttelbtf0in0	cmvyzfv25001bztteq2jc6y1s	cmvyzfv0n000eztteo67wygej	ABSENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003qztte128qjt9d	cmvyzfv25001bztteq2jc6y1s	cmvyzfv0t000gzttek8qsqyjj	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003rztte2lkq8qby	cmvyzfv25001bztteq2jc6y1s	cmvyzfv0x000iztteda8zx3n4	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003sztte7z1bvsrm	cmvyzfv25001bztteq2jc6y1s	cmvyzfv12000kztte65rwntv6	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003tztte446uex2v	cmvyzfv25001bztteq2jc6y1s	cmvyzfv16000mztte09liwvf4	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003uztter1dfcl6h	cmvyzfv25001bztteq2jc6y1s	cmvyzfv1b000ozttet72vj07i	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003vztteg14dg4ag	cmvyzfv25001bztteq2jc6y1s	cmvyzfv1f000qzttep2y7iefp	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003wztteph7o3514	cmvyzfv25001bztteq2jc6y1s	cmvyzfv1i000szttegzduqxo0	PRESENT	0	\N	2026-11-02 08:13:59.215
-cmvyzfv3i003xztte3ib4z5to	cmvyzfv25001bztteq2jc6y1s	cmvyzfv1m000uztteclw6s589	PRESENT	0	\N	2026-11-02 08:13:59.215
+cmw0jnupt001c10tznwmu2dxq	cmw0jnupa000x10tzqoa6m66t	cmw0jnujy000c10tzqc79ta65	LATE	15	\N	2026-11-03 10:27:50.465
+cmw0jnupt001d10tzot60ck1l	cmw0jnupa000x10tzqoa6m66t	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001e10tzeqvvt9gj	cmw0jnupa000x10tzqoa6m66t	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001f10tze836d3o5	cmw0jnupa000x10tzqoa6m66t	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001g10tz28jrrihr	cmw0jnupa000x10tzqoa6m66t	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001h10tz6zsczssa	cmw0jnupa000x10tzqoa6m66t	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001i10tzx64jntgk	cmw0jnupa000x10tzqoa6m66t	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001j10tzgtay4ecw	cmw0jnupa000x10tzqoa6m66t	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001k10tzaqxwzse6	cmw0jnupa000x10tzqoa6m66t	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnupt001l10tzetgqu5rk	cmw0jnupa000x10tzqoa6m66t	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.465
+cmw0jnuq2001o10tzhsi8840k	cmw0jnupe000z10tz5auynnpq	cmw0jnujy000c10tzqc79ta65	LATE	15	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001p10tz7xbkmpfh	cmw0jnupe000z10tz5auynnpq	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001q10tzgq63hk3z	cmw0jnupe000z10tz5auynnpq	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001r10tzzgofmeog	cmw0jnupe000z10tz5auynnpq	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001s10tzvfp25wq3	cmw0jnupe000z10tz5auynnpq	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001t10tz7vg79zno	cmw0jnupe000z10tz5auynnpq	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001u10tzuk7ksn08	cmw0jnupe000z10tz5auynnpq	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001v10tzdf6poxo2	cmw0jnupe000z10tz5auynnpq	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001w10tzsuauygld	cmw0jnupe000z10tz5auynnpq	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnuq2001x10tz78j36ahi	cmw0jnupe000z10tz5auynnpq	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.474
+cmw0jnusw002010tzzlfkb133	cmw0jnupg001110tzy9fa2d6y	cmw0jnujy000c10tzqc79ta65	LATE	15	\N	2026-11-03 10:27:50.576
+cmw0jnusw002110tzig9yxwai	cmw0jnupg001110tzy9fa2d6y	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002210tzojatos7t	cmw0jnupg001110tzy9fa2d6y	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002310tz0wa526r6	cmw0jnupg001110tzy9fa2d6y	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002410tzyw5oxqgf	cmw0jnupg001110tzy9fa2d6y	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002510tzsuli6jf9	cmw0jnupg001110tzy9fa2d6y	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002610tzv7dojw5i	cmw0jnupg001110tzy9fa2d6y	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002710tzftjhl14y	cmw0jnupg001110tzy9fa2d6y	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002810tz5m9n86nw	cmw0jnupg001110tzy9fa2d6y	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnusw002910tzl1hn9bu9	cmw0jnupg001110tzy9fa2d6y	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.576
+cmw0jnut6002c10tz9lw54xkg	cmw0jnupi001310tzb6lmepzs	cmw0jnujy000c10tzqc79ta65	LATE	15	\N	2026-11-03 10:27:50.587
+cmw0jnut7002d10tzu01gfnuw	cmw0jnupi001310tzb6lmepzs	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002e10tztm38ucpz	cmw0jnupi001310tzb6lmepzs	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002f10tz0eznk2de	cmw0jnupi001310tzb6lmepzs	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002g10tzh8ty9c3z	cmw0jnupi001310tzb6lmepzs	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002h10tzav3v68j6	cmw0jnupi001310tzb6lmepzs	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002i10tzlvx2gczv	cmw0jnupi001310tzb6lmepzs	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002j10tzkzx0d85q	cmw0jnupi001310tzb6lmepzs	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002k10tzhe5nvpqq	cmw0jnupi001310tzb6lmepzs	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnut7002l10tz4dqe0orp	cmw0jnupi001310tzb6lmepzs	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.587
+cmw0jnutg002o10tznlhqn713	cmw0jnupk001510tz6gi3wku3	cmw0jnujy000c10tzqc79ta65	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002p10tzwz8x6cie	cmw0jnupk001510tz6gi3wku3	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002q10tzh6rcqoo0	cmw0jnupk001510tz6gi3wku3	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002r10tzqxz9ccnt	cmw0jnupk001510tz6gi3wku3	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002s10tz4p7igrb3	cmw0jnupk001510tz6gi3wku3	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002t10tz1u9uciwa	cmw0jnupk001510tz6gi3wku3	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002u10tz9op90eo6	cmw0jnupk001510tz6gi3wku3	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002v10tz5ipjppx8	cmw0jnupk001510tz6gi3wku3	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002w10tzqlsur4qu	cmw0jnupk001510tz6gi3wku3	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutg002x10tzkmjbedj1	cmw0jnupk001510tz6gi3wku3	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.597
+cmw0jnutn003010tzt0x5ghfp	cmw0jnupm001710tztttbpn1x	cmw0jnujy000c10tzqc79ta65	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003110tz71nhyc7i	cmw0jnupm001710tztttbpn1x	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003210tzbqovbz34	cmw0jnupm001710tztttbpn1x	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003310tzn0xbkgz3	cmw0jnupm001710tztttbpn1x	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003410tz3kv3n0ot	cmw0jnupm001710tztttbpn1x	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003510tzsgacjme6	cmw0jnupm001710tztttbpn1x	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003610tzakjehe6y	cmw0jnupm001710tztttbpn1x	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003710tz7fj69zlv	cmw0jnupm001710tztttbpn1x	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003810tzmulgbw80	cmw0jnupm001710tztttbpn1x	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnuto003910tzqwf67c12	cmw0jnupm001710tztttbpn1x	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.604
+cmw0jnutv003c10tzv2rc016w	cmw0jnupp001910tzs75ps3s9	cmw0jnujy000c10tzqc79ta65	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003d10tz7e207cqb	cmw0jnupp001910tzs75ps3s9	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003e10tz8jpij5oo	cmw0jnupp001910tzs75ps3s9	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003f10tz5uzyf7xy	cmw0jnupp001910tzs75ps3s9	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003g10tz8hdqq1by	cmw0jnupp001910tzs75ps3s9	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003h10tzk9ann7qb	cmw0jnupp001910tzs75ps3s9	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003i10tzca2bscec	cmw0jnupp001910tzs75ps3s9	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003j10tz2cqbt53j	cmw0jnupp001910tzs75ps3s9	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003k10tz9p4p9yza	cmw0jnupp001910tzs75ps3s9	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnutv003l10tzka7bq6xu	cmw0jnupp001910tzs75ps3s9	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.611
+cmw0jnuu3003o10tzf84uy0je	cmw0jnupr001b10tzdah6tme9	cmw0jnujy000c10tzqc79ta65	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu3003p10tzxo1er03f	cmw0jnupr001b10tzdah6tme9	cmw0jnuk5000e10tzk0a9wod2	ABSENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu3003q10tzqyc2eorn	cmw0jnupr001b10tzdah6tme9	cmw0jnuk9000g10tz0fnx9k71	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu3003r10tznyjsmw8e	cmw0jnupr001b10tzdah6tme9	cmw0jnukd000i10tzi3ynhv8y	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu4003s10tz4ee5r2s6	cmw0jnupr001b10tzdah6tme9	cmw0jnukh000k10tzii2sbdnk	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu4003t10tzsak95k3h	cmw0jnupr001b10tzdah6tme9	cmw0jnukl000m10tzqnu2x568	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu4003u10tzn6bgsrxq	cmw0jnupr001b10tzdah6tme9	cmw0jnuoj000o10tz4g0w14e9	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu4003v10tz0spd05kt	cmw0jnupr001b10tzdah6tme9	cmw0jnuos000q10tzd6lhf3kv	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu4003w10tz4yd82c4j	cmw0jnupr001b10tzdah6tme9	cmw0jnup0000s10tzzyu2f7pe	PRESENT	0	\N	2026-11-03 10:27:50.62
+cmw0jnuu4003x10tz484t1i9f	cmw0jnupr001b10tzdah6tme9	cmw0jnup5000u10tz8uwx7vhk	PRESENT	0	\N	2026-11-03 10:27:50.62
 \.
 
 
@@ -672,12 +689,11 @@ COPY public."StudentPhoto" ("studentId", data, mime, "updatedAt") FROM stdin;
 --
 
 COPY public."Subject" (id, name) FROM stdin;
-cmvyzfv050006ztteqt8m3ash	Mathématiques
-cmvyzrabp0000epmi2qmfjx5y	Physique
-cmvyzrga60001epmibfir6v6g	Malagasy
-cmvyzruvh0002epmimu4d2rsv	English
-cmvyzs3920003epmi2avum7c2	Histoire
-cmvyzfv070007zttej8sqa7tk	Français
+cmw0jnujp000610tzjjppc0b0	Mathématiques
+cmw0jnujr000710tz8rm72bb4	Français
+cmw0k0v1p000f10eyiwnhziov	Physique
+cmw0k12hv000g10eyvzyugzfd	Malagasy
+cmw0k18n0000h10eyur4yqid6	Histoire
 \.
 
 
@@ -686,11 +702,8 @@ cmvyzfv070007zttej8sqa7tk	Français
 --
 
 COPY public."Teacher" (id, "userId", "hourlyRate") FROM stdin;
-cmvyzfuzo0001zttermxozw9e	cmvyzfuzp0002ztte71cn0q0g	8000.00
-cmvyzfuzz0003ztte1wyqodzm	cmvyzfuzz0004ztteglqz1pjm	9000.00
-cmvzdi9310002yxu9xxy8levw	cmvzc5hcp0006xqbga5lznu76	0.00
-cmvzdi9390004yxu9rytwku5t	cmvzc6fnc0007xqbg8c3m5znx	0.00
-cmvzeigbe000412gwzst0fxeh	cmvzeigbe000512gw504odth3	0.00
+cmw0jnujd000110tz96pjeedm	cmw0jnujd000210tzpff0duop	8000.00
+cmw0jnujj000310tzjg6yepxc	cmw0jnujj000410tzavkn8d72	9000.00
 \.
 
 
@@ -699,14 +712,14 @@ cmvzeigbe000412gwzst0fxeh	cmvzeigbe000512gw504odth3	0.00
 --
 
 COPY public."TeacherAttendance" (id, "sessionId", "teacherId", status, "arrivedAt", "leftAt", note) FROM stdin;
-cmvyzfv2q001nztteq19gfb4r	cmvyzfv1q000xzttej94trxn5	cmvyzfuzo0001zttermxozw9e	PRESENT	\N	\N	\N
-cmvyzfv2v001zzttex4driosq	cmvyzfv1t000zztte8k4sifq3	cmvyzfuzz0003ztte1wyqodzm	LATE	2026-11-01 08:20:00	\N	\N
-cmvyzfv2z002bztteacj6r5gh	cmvyzfv1w0011zttefr7opj73	cmvyzfuzo0001zttermxozw9e	PRESENT	\N	\N	\N
-cmvyzfv34002nzttejhlk7waz	cmvyzfv1x0013zttewyv9vlmx	cmvyzfuzz0003ztte1wyqodzm	LATE	2026-10-30 08:20:00	\N	\N
-cmvyzfv38002zztteo9386zfr	cmvyzfv1z0015ztteq6k5zbg5	cmvyzfuzo0001zttermxozw9e	ABSENT	\N	\N	\N
-cmvyzfv3c003bzttecweug3s7	cmvyzfv210017ztte2p7fhwyb	cmvyzfuzz0003ztte1wyqodzm	LATE	2026-10-28 08:20:00	\N	\N
-cmvyzfv3h003nztte0wdiizt7	cmvyzfv230019zttetcz4fifr	cmvyzfuzo0001zttermxozw9e	ABSENT	\N	\N	\N
-cmvyzfv3q003zztteqte190tn	cmvyzfv25001bztteq2jc6y1s	cmvyzfuzz0003ztte1wyqodzm	LATE	2026-10-26 08:20:00	\N	\N
+cmw0jnupz001n10tzpcxo21t5	cmw0jnupa000x10tzqoa6m66t	cmw0jnujd000110tz96pjeedm	PRESENT	\N	\N	\N
+cmw0jnuq5001z10tzhnwj9iq4	cmw0jnupe000z10tz5auynnpq	cmw0jnujj000310tzjg6yepxc	LATE	2026-11-02 08:20:00	\N	\N
+cmw0jnut2002b10tzf2atr4yh	cmw0jnupg001110tzy9fa2d6y	cmw0jnujd000110tz96pjeedm	PRESENT	\N	\N	\N
+cmw0jnutd002n10tza0kgpcy7	cmw0jnupi001310tzb6lmepzs	cmw0jnujj000310tzjg6yepxc	LATE	2026-10-31 08:20:00	\N	\N
+cmw0jnutl002z10tzbjas5vrm	cmw0jnupk001510tz6gi3wku3	cmw0jnujd000110tz96pjeedm	ABSENT	\N	\N	\N
+cmw0jnuts003b10tznv1v2fem	cmw0jnupm001710tztttbpn1x	cmw0jnujj000310tzjg6yepxc	LATE	2026-10-29 08:20:00	\N	\N
+cmw0jnuu1003n10tzko40nbx3	cmw0jnupp001910tzs75ps3s9	cmw0jnujd000110tz96pjeedm	ABSENT	\N	\N	\N
+cmw0jnuu8003z10tz5lyuni9b	cmw0jnupr001b10tzdah6tme9	cmw0jnujj000310tzjg6yepxc	LATE	2026-10-27 08:20:00	\N	\N
 \.
 
 
@@ -715,7 +728,7 @@ cmvyzfv3q003zztteqte190tn	cmvyzfv25001bztteq2jc6y1s	cmvyzfuzz0003ztte1wyqodzm	LA
 --
 
 COPY public."Term" (id, name, "startDate", "endDate") FROM stdin;
-cmvyzfv3r0040zttewjnktxlm	Trimestre 1	2026-09-03 12:00:00	2027-01-01 12:00:00
+cmw0jnuua004010tz96c12b3z	Trimestre 1	2026-09-04 00:00:00	2027-01-02 00:00:00
 \.
 
 
@@ -723,24 +736,28 @@ cmvyzfv3r0040zttewjnktxlm	Trimestre 1	2026-09-03 12:00:00	2027-01-01 12:00:00
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, email, "passwordHash", name, role, active, "createdAt") FROM stdin;
-cmvyzfuza0000zttel91xnrrd	admin@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Administrateur	ADMIN	t	2026-11-02 08:13:59.061
-cmvyzfuzp0002ztte71cn0q0g	rakoto@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Rakoto Jean	TEACHER	t	2026-11-02 08:13:59.077
-cmvyzfuzz0004ztteglqz1pjm	rasoa@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Rasoa Marie	TEACHER	t	2026-11-02 08:13:59.088
-cmvyzfv0g000dztten6ece593	andry@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Andry Randria	STUDENT	t	2026-11-02 08:13:59.104
-cmvyzfv0n000fztteli5b294i	bodo@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Bodo Ravelo	STUDENT	t	2026-11-02 08:13:59.111
-cmvyzfv0t000hzttegcyxiq9r	chloe@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Chloé Rakoto	STUDENT	t	2026-11-02 08:13:59.117
-cmvyzfv0x000jzttey3gbdhvb	dina@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Dina Rasoa	STUDENT	t	2026-11-02 08:13:59.122
-cmvyzfv12000lzttevlwrbkwp	eric@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Eric Andrianina	STUDENT	t	2026-11-02 08:13:59.127
-cmvyzfv17000nzttea45nasii	faly@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Faly Hery	STUDENT	t	2026-11-02 08:13:59.131
-cmvyzfv1b000pztte5uwl381c	gaby@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Gaby Razafy	STUDENT	t	2026-11-02 08:13:59.135
-cmvyzfv1f000rztte8b4vgds3	hery@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Hery Ranaivo	STUDENT	t	2026-11-02 08:13:59.139
-cmvyzfv1j000tztte1mfud795	iony@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Iony Rabe	STUDENT	t	2026-11-02 08:13:59.143
-cmvzc5hcp0006xqbga5lznu76	rakotobe@gmail.com	$2a$10$pAR5VoQ2s7KjuFjWXgSmS.kMaK7oi3bVWZmYrlHMy5hooTp2agoei	Rakotobe	TEACHER	t	2026-11-02 14:09:49.849
-cmvzc6fnc0007xqbg8c3m5znx	ramaria@gmail.com	$2a$10$p9U.QRawwkwYNPZxhRma4uiuMjdckfcb1Vv1gzacDPGM672X8nf/S	Ramaria	TEACHER	t	2026-11-02 14:10:34.296
-cmvyzfv1m000vztte13n25ixt	jao@ecole.mg	$2a$10$kReULK6yOgZDjqNeXvWEFuADF4c0qTVjfLjBk5ZSae5jZ79AhdHHS	Jao Rakotomalala	STUDENT	t	2026-11-02 08:13:59.147
-cmvzdf9tc0000yxu9sbc5ahwf	joseph@gmail.com	$2a$10$xA/mPOP/u5NOX9fPxREJ8.biY6bXi7c6yTOAdV39YFB2/d0xcHCuG	Joseph	MANAGER	t	2026-11-02 14:45:26.255
-cmvzeigbe000512gw504odth3	joseph6@gmail.com	$2a$10$IfK2YFhnb20zivnUafI7tO1HP0UMfB71nUgjy5aKAIM8AE.PE3Wyi	ruryiuryuie	TEACHER	t	2026-11-02 15:15:54.266
+COPY public."User" (id, email, "passwordHash", name, role, active, "createdAt", phone, "photoUrl") FROM stdin;
+cmw0jnuj4000010tzagqikysr	admin@ecole.mg	$2a$10$H.9DXVqN8ckscX7n5zdpIOtenM3QP52B8inKc4BZsvDzsAv2elVfe	Administrateur	ADMIN	t	2026-11-03 10:27:50.224	\N	\N
+cmw0jnujd000210tzpff0duop	rakoto@ecole.mg	$2a$10$H.9DXVqN8ckscX7n5zdpIOtenM3QP52B8inKc4BZsvDzsAv2elVfe	Rakoto Jean	TEACHER	t	2026-11-03 10:27:50.233	\N	\N
+cmw0jnujj000410tzavkn8d72	rasoa@ecole.mg	$2a$10$H.9DXVqN8ckscX7n5zdpIOtenM3QP52B8inKc4BZsvDzsAv2elVfe	Rasoa Marie	TEACHER	t	2026-11-03 10:27:50.24	\N	\N
+cmw0jnujz000d10tzmcc1lz01	andry@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Andry Randria	STUDENT	t	2026-11-03 10:27:50.255	\N	\N
+cmw0jnuk5000f10tzy2k1w2bm	bodo@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Bodo Ravelo	STUDENT	t	2026-11-03 10:27:50.261	\N	\N
+cmw0jnuk9000h10tzx2l9rrjp	chloe@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Chloé Rakoto	STUDENT	t	2026-11-03 10:27:50.265	\N	\N
+cmw0jnukd000j10tzxwm6sqmw	dina@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Dina Rasoa	STUDENT	t	2026-11-03 10:27:50.27	\N	\N
+cmw0jnukh000l10tzwzhf67rc	eric@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Eric Andrianina	STUDENT	t	2026-11-03 10:27:50.274	\N	\N
+cmw0jnukl000n10tz4wumubxn	faly@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Faly Hery	STUDENT	t	2026-11-03 10:27:50.278	\N	\N
+cmw0jnuoj000p10tzcor84fr5	gaby@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Gaby Razafy	STUDENT	t	2026-11-03 10:27:50.419	\N	\N
+cmw0jnuos000r10tz9rxljabc	hery@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Hery Ranaivo	STUDENT	t	2026-11-03 10:27:50.428	\N	\N
+cmw0jnup1000t10tzmhm323px	iony@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Iony Rabe	STUDENT	t	2026-11-03 10:27:50.437	\N	\N
+cmw0jnup6000v10tzazwiv3la	jao@ecole.mg	$2a$10$MVkVqEllDOBQbzFITD2SX.ZT9qk8H6OqwN8tHiKG0JLJlsigJCTpq	Jao Rakotomalala	STUDENT	t	2026-11-03 10:27:50.442	\N	\N
+\.
+
+
+--
+-- Data for Name: UserPhoto; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."UserPhoto" ("userId", data, mime, "updatedAt") FROM stdin;
 \.
 
 
@@ -749,7 +766,10 @@ cmvzeigbe000512gw504odth3	joseph6@gmail.com	$2a$10$IfK2YFhnb20zivnUafI7tO1HP0UMf
 --
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
-ff2a6cdd-452a-484a-ab41-ef156b7bf5e5	cd85756a56117a2742f6f92435222cb08b43c16a8ce9c3db60c6a0570ac7db55	2026-11-02 09:06:09.384928+03	20261102060609_init_fr	\N	\N	2026-11-02 09:06:09.146429+03	1
+adb3cbe6-737e-453c-9be6-bf18ca692b3b	552b849c0721bfb16a7ae86b7e3df5d094471d1b74a586197b533bf1f8896caa	2026-11-03 13:27:33.700348+03	20261102060609_init_fr	\N	\N	2026-11-03 13:27:33.486142+03	1
+4615ea0f-9ee8-426d-90a7-f6e194e531de	6121cadbc795e9d04a70cf3d2e61084ae5da6d314e40b2dd9f63fffa3b35bbe3	2026-11-03 13:27:33.717796+03	20261102120000_student_photo	\N	\N	2026-11-03 13:27:33.701158+03	1
+26425baa-d96c-4cda-8a36-ea321ce13ed4	6b092d997992d86fccbfaf834b13897b0c3cb9669c7a0e9e0d78f1d59cbbc399	2026-11-03 13:27:33.733144+03	20261103090000_user_photo_phone	\N	\N	2026-11-03 13:27:33.718667+03	1
+b141468f-93a9-4cf7-a7ff-d700d109c44a	802b5a34f3ea74216353193a8a8ee655d09ffaead59c0e29febd1cbac53226b4	2026-11-03 13:27:47.880539+03	20261103102747_sary	\N	\N	2026-11-03 13:27:47.779648+03	1
 \.
 
 
@@ -887,6 +907,14 @@ ALTER TABLE ONLY public."Teacher"
 
 ALTER TABLE ONLY public."Term"
     ADD CONSTRAINT "Term_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: UserPhoto UserPhoto_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserPhoto"
+    ADD CONSTRAINT "UserPhoto_pkey" PRIMARY KEY ("userId");
 
 
 --
@@ -1281,6 +1309,14 @@ ALTER TABLE ONLY public."Teacher"
 
 
 --
+-- Name: UserPhoto UserPhoto_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserPhoto"
+    ADD CONSTRAINT "UserPhoto_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
 --
 
@@ -1291,5 +1327,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4aOQo4iKhb14GiNxN4gQyoqp64ZXkfFuEtum9iJaB1INd3xVTvFAh1orBf5xjcS
+\unrestrict GFek27ZBb21idgYXI6ZzsKgNoaI09381EchwYaDPUQPbLUeVUQsaE3JrJP4P54s
 

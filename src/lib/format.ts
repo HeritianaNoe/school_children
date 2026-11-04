@@ -16,5 +16,10 @@ export const toDateInput = (d: Date | null | undefined) => {
   if (!d) return "";
   return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
 };
+/** Valeur pour <input type="time"> (HH:MM, heure locale) */
+export const toTimeInput = (d: Date | null | undefined) => {
+  if (!d) return "";
+  return `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+};
 /** « 2026-11-02 » → Date à midi (heure locale) : évite les décalages de jour liés au fuseau horaire. */
 export const parseDateInput = (s: string) => new Date(`${s}T12:00:00`);

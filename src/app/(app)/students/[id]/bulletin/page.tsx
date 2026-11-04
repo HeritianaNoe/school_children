@@ -5,46 +5,7 @@ import { requireUser } from "@/lib/session";
 import { forbidden } from "@/lib/flash";
 import { fmtDate } from "@/lib/format";
 import PrintButton from "@/components/PrintButton";
-
-async function averageBySubject(studentId: string, termId?: string) {
-  const where = {
-    studentId,
-    score: { not: null },
-    ...(termId ? { assessment: { termId } } : {}),
-  } as any;
-
-  const rows = await prisma.grade.findMany({
-    where,
-    include: {
-      assessment: {
-        include: {
-          course: { include: { subject: true } },
-        },
-      },
-    },
-  });
-
-  const by = new Map<string, { name: string; total: number; count: number; coefficient: number }>();
-  for (const row of rows) {
-    const key = row.assessment.course.subjectId;
-    const current = by.get(key) ?? {
-      name: row.assessment.course.subject.name,
-      total: 0,
-      count: 0,
-      coefficient: row.assessment.course.coefficient,
-    };
-    current.total += (row.score! / row.assessment.maxScore) * 20;
-    current.count += 1;
-    by.set(key, current);
-  }
-
-  return [...by.entries()].map(([id, value]) => ({
-    id,
-    name: value.name,
-    avg: value.count ? +(value.total / value.count).toFixed(2) : null,
-    coefficient: value.coefficient,
-  }));
-}
+import { getBulletinData } from "@/lib/bulletin";
 
 export default async function StudentBulletinPage({ params }: { params: { id: string } }) {
   const u = await requireUser();
@@ -55,18 +16,7 @@ export default async function StudentBulletinPage({ params }: { params: { id: st
   if (!s) notFound();
   if (u.role === "STUDENT" && s.userId !== u.id) forbidden();
 
-  const terms = await prisma.term.findMany({ orderBy: { startDate: "asc" } });
-  const allSubjects = await averageBySubject(s.id);
-  const termSummaries = await Promise.all(
-    terms.map(async (term) => ({
-      term,
-      rows: await averageBySubject(s.id, term.id),
-    }))
-  );
-
-  const overallAvg = allSubjects.length
-    ? +((allSubjects.reduce((sum, r) => sum + (r.avg ?? 0), 0) / allSubjects.length)).toFixed(2)
-    : null;
+  const { allSubjects, termSummaries, overallAvg } = await getBulletinData(s.id);
 
   return (
     <>
@@ -77,12 +27,9 @@ export default async function StudentBulletinPage({ params }: { params: { id: st
             {s.lastName.toUpperCase()} {s.firstName} · {s.matricule}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <PrintButton label="Imprimer / enregistrer en PDF" />
-          <Link href={`/students/${s.id}`} className="btn-secondary btn">
-            ← Dossier de l'élève
-          </Link>
-        </div>
+        <Link href={`/students/${s.id}`} className="btn-secondary btn">
+          ← Dossier de l'élève
+        </Link>
       </div>
 
       <article className="fiche" style={{ maxWidth: 920 }}>
@@ -137,6 +84,13 @@ export default async function StudentBulletinPage({ params }: { params: { id: st
           </div>
         ))}
       </article>
+
+      <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 20 }}>
+        <a href={`/api/students/${s.id}/bulletin`} className="btn">
+          PDF
+        </a>
+        <PrintButton label="Imprimer" />
+      </div>
     </>
   );
 }
