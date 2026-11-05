@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout } from "@/app/actions/auth";
 import { ROLE_LABEL } from "@/lib/labels";
 import { ROLES, hasRole } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/session";
@@ -11,6 +10,8 @@ import Icon, { type IconName } from "./Icons";
 
 type NavLink = { href: string; label: string; icon: IconName; show: boolean };
 type NavSection = { title?: string; links: NavLink[] };
+
+const DESKTOP_MQ = "(min-width: 861px)";
 
 export default function Nav({
   user,
@@ -22,23 +23,40 @@ export default function Nav({
   avatarUrl?: string | null;
 }) {
   const pathname = usePathname();
+  // Desktop : ouvert par défaut ; mobile : fermé
   const [open, setOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const staff = hasRole(user.role, ROLES.STAFF);
   const pedagogy = hasRole(user.role, ROLES.PEDAGOGY);
   const direction = hasRole(user.role, ROLES.DIRECTION);
 
-  // Ferme le menu mobile à chaque navigation et avec la touche Échap
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_MQ);
+    const apply = () => {
+      setIsDesktop(mq.matches);
+      setOpen(mq.matches);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
-  // Le bouton « Menu » vit dans le contenu (MenuButton) : on dialogue par événements
+  // Sur mobile uniquement : fermer le menu à chaque navigation
+  useEffect(() => {
+    if (!isDesktop) setOpen(false);
+  }, [pathname, isDesktop]);
+
   useEffect(() => {
     const toggle = () => setOpen((v) => !v);
     window.addEventListener("sidebar-toggle", toggle);
     return () => window.removeEventListener("sidebar-toggle", toggle);
   }, []);
+
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("sidebar-state", { detail: open }));
+    document.documentElement.classList.toggle("sidebar-open", open);
   }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -60,11 +78,11 @@ export default function Nav({
     {
       title: "Pédagogie",
       links: [
-        { href: "/students", label: "Élèves", icon: "graduation", show: pedagogy },
+        { href: "/school-years", label: "Années scolaires", icon: "history", show: direction },
         { href: "/classes", label: "Classes", icon: "school", show: staff },
+        { href: "/students", label: "Élèves", icon: "graduation", show: pedagogy },
         { href: "/subjects", label: "Matières", icon: "book", show: pedagogy },
         { href: "/terms", label: "Périodes", icon: "calendar", show: staff },
-        { href: "/school-years", label: "Historique des années", icon: "history", show: direction },
         { href: "/assessments", label: "Notes et évaluations", icon: "clipboard", show: pedagogy },
         { href: "/sessions", label: "Séances et présences", icon: "calendarCheck", show: pedagogy },
       ],
@@ -92,9 +110,10 @@ export default function Nav({
     .filter((l) => pathname === l.href || pathname.startsWith(l.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
-  const close = () => setOpen(false);
+  const close = () => {
+    if (!isDesktop) setOpen(false);
+  };
   const roleLabel = ROLE_LABEL[user.role] ?? user.role;
-  // Évite le doublon visuel quand le nom du compte est identique au rôle (ex. « Administrateur »)
   const sameAsRole = user.name.trim().toLowerCase() === roleLabel.toLowerCase();
 
   return (
@@ -105,8 +124,8 @@ export default function Nav({
           <span className="brand-mark">
             <Icon name="school" size={20} />
           </span>
-          Gestion scolaire
-          <button type="button" className="sidebar-close" onClick={close} aria-label="Fermer le menu">
+          École lumière
+          <button type="button" className="sidebar-close" onClick={() => setOpen(false)} aria-label="Fermer le menu">
             <Icon name="close" size={20} />
           </button>
         </div>
@@ -141,7 +160,13 @@ export default function Nav({
         </nav>
 
         <div className="sidebar-footer">
-          <Link href="/account" className="user-chip user-chip-link" onClick={close} title="Modifier mon compte" aria-label="Modifier mon compte">
+          <Link
+            href="/account"
+            className="user-chip user-chip-link"
+            onClick={close}
+            title="Modifier mon compte"
+            aria-label="Modifier mon compte"
+          >
             <span className="user-avatar">
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -154,16 +179,7 @@ export default function Nav({
               <strong title={user.name}>{user.name}</strong>
               {!sameAsRole && <span>{roleLabel}</span>}
             </div>
-            <span className="user-edit-icon" aria-hidden="true">
-              <Icon name="pencil" size={15} />
-            </span>
           </Link>
-          <form action={logout}>
-            <button type="submit" className="btn-secondary btn-sm logout-btn">
-              <Icon name="logout" size={16} />
-              Se déconnecter
-            </button>
-          </form>
         </div>
       </aside>
     </>

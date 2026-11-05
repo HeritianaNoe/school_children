@@ -25,6 +25,7 @@ const studentSchema = z.object({
   parentName: z.string().max(120).optional(),
   parentPhone: z.string().max(40).optional(),
   classeId: z.string().min(1),
+  nomenclature: z.enum(["NEW", "PROMOTED", "REPEATER", "TRANSFERRED"]).default("NEW"),
   email: z.string().email().max(160).optional(),
   registeredAt: dateStr.optional(),
 });
@@ -73,7 +74,7 @@ export async function createStudent(fd: FormData) {
   const photo = await readPhoto(fd);
   if (!photo.ok) fail("/students/new", photo.key);
 
-  const classe = await prisma.classe.findUnique({ where: { id: d.classeId } });
+  const classe = await prisma.classe.findUnique({ where: { id: d.classeId }, include: { schoolYear: true } });
   if (!classe) fail("/students/new", "not_found");
 
   if (d.email) {
@@ -90,7 +91,7 @@ export async function createStudent(fd: FormData) {
   let studentId: string | null = null;
   // Le matricule est unique : en cas de collision (deux inscriptions simultanées), on recalcule.
   for (let attempt = 0; attempt < 5 && !studentId; attempt++) {
-    const matricule = await nextMatricule(classe.year);
+    const matricule = await nextMatricule(classe.schoolYear.name);
     try {
       const student = await prisma.student.create({
         data: {
@@ -104,6 +105,7 @@ export async function createStudent(fd: FormData) {
           parentName: d.parentName ?? null,
           parentPhone: d.parentPhone ?? null,
           registeredAt: d.registeredAt ? parseDateInput(d.registeredAt) : new Date(),
+          nomenclature: d.nomenclature,
           classe: { connect: { id: classe.id } },
           user: {
             create: { email, name: `${d.firstName} ${d.lastName}`, role: "STUDENT", passwordHash },
@@ -150,7 +152,7 @@ export async function updateStudent(fd: FormData) {
   const photo = await readPhoto(fd);
   if (!photo.ok) fail(back, photo.key);
 
-  const classe = await prisma.classe.findUnique({ where: { id: d.classeId } });
+  const classe = await prisma.classe.findUnique({ where: { id: d.classeId }, include: { schoolYear: true } });
   if (!classe) fail(back, "not_found");
 
   const email = d.email ?? current.user.email;
@@ -185,6 +187,7 @@ export async function updateStudent(fd: FormData) {
         parentName: d.parentName ?? null,
         parentPhone: d.parentPhone ?? null,
         registeredAt: d.registeredAt ? parseDateInput(d.registeredAt) : current.registeredAt,
+        nomenclature: d.nomenclature,
         photoUrl,
         classe: { connect: { id: classe.id } },
         user: { update: { email, name: `${d.firstName} ${d.lastName}` } },

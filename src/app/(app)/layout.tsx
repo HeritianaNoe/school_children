@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Nav from "@/components/Nav";
-import MenuButton from "@/components/MenuButton";
+import TopBar from "@/components/TopBar";
 import FlashToast from "@/components/FlashToast";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -22,10 +22,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="app-shell">
       <Nav user={user} studentId={student?.id} avatarUrl={avatarUrl} />
       <div className="main-area">
-        <main className="content">
-          <MenuButton />
-          {children}
-        </main>
+        <TopBar />
+        <main className="content">{children}</main>
       </div>
       <Suspense fallback={null}>
         <FlashToast />

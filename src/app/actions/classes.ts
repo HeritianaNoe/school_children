@@ -10,23 +10,44 @@ import { done, fail } from "@/lib/flash";
 const STAFF = ["ADMIN", "DIRECTOR"] as const;
 
 const classeSchema = z.object({
-  name: z.string().trim().min(1).max(60),
-  year: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{4}$/)
-    .refine((y) => Number(y.slice(5)) === Number(y.slice(0, 4)) + 1),
+  name: z.string().trim().min(1).max(50),
+  schoolYearId: z.string().min(1),
+  roomNumber: z.string().trim().max(20).optional(),
+  capacity: z.coerce.number().int().min(1).max(500).optional(),
 });
+
+/** Lit le formulaire : champs facultatifs vides => undefined. */
+function readClasse(fd: FormData) {
+  const opt = (k: string) => {
+    const v = String(fd.get(k) ?? "").trim();
+    return v === "" ? undefined : v;
+  };
+  return classeSchema.safeParse({
+    name: fd.get("name"),
+    schoolYearId: fd.get("schoolYearId"),
+    roomNumber: opt("roomNumber"),
+    capacity: opt("capacity"),
+  });
+}
 
 const isUnique = (e: unknown) =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 
 export async function createClasse(fd: FormData) {
   await requireUser([...STAFF]);
-  const p = classeSchema.safeParse({ name: fd.get("name"), year: fd.get("year") });
+  const p = readClasse(fd);
   if (!p.success) fail("/classes", "validation");
+  const sy = await prisma.schoolYear.findUnique({ where: { id: p.data.schoolYearId }, select: { id: true } });
+  if (!sy) fail("/classes", "not_found");
   try {
-    const c = await prisma.classe.create({ data: p.data });
+    const c = await prisma.classe.create({
+      data: {
+        name: p.data.name,
+        schoolYearId: p.data.schoolYearId,
+        roomNumber: p.data.roomNumber ?? null,
+        ...(p.data.capacity !== undefined ? { capacity: p.data.capacity } : {}),
+      },
+    });
     revalidatePath("/classes");
     done(`/classes/${c.id}`, "class_created");
   } catch (e) {
@@ -43,10 +64,20 @@ export async function updateClasse(fd: FormData) {
   const id = String(fd.get("id") ?? "");
   const back = backTo(fd, id);
   const editPage = fd.get("from") === "list" ? `/classes/${id}/edit` : back;
-  const p = classeSchema.safeParse({ name: fd.get("name"), year: fd.get("year") });
+  const p = readClasse(fd);
   if (!p.success) fail(editPage, "validation");
+  const sy = await prisma.schoolYear.findUnique({ where: { id: p.data.schoolYearId }, select: { id: true } });
+  if (!sy) fail(editPage, "not_found");
   try {
-    await prisma.classe.update({ where: { id }, data: p.data });
+    await prisma.classe.update({
+      where: { id },
+      data: {
+        name: p.data.name,
+        schoolYearId: p.data.schoolYearId,
+        roomNumber: p.data.roomNumber ?? null,
+        capacity: p.data.capacity ?? null,
+      },
+    });
   } catch (e) {
     if (isUnique(e)) fail(editPage, "class_exists");
     throw e;

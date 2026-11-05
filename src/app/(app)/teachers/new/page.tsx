@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/session";
 import { createTeacher } from "@/app/actions/teachers";
 import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
 import PhotoInput from "@/components/PhotoInput";
+import { TEACHER_STATUS_LABEL, TEACHER_STATUS_VALUES } from "@/lib/labels";
 
 export default async function NewTeacherPage() {
   await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
@@ -38,6 +39,16 @@ export default async function NewTeacherPage() {
             <input name="phone" type="tel" maxLength={40} placeholder="+261 34 00 000 00" />
           </label>
           <PhotoInput label="Photo de l'enseignant" />
+          <label>
+            Statut de l&apos;enseignant *
+            <select name="status" required defaultValue="CONTRACTUEL">
+              {TEACHER_STATUS_VALUES.map((s) => (
+                <option key={s} value={s}>
+                  {TEACHER_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </label>
           <label>
             Taux horaire (Ar)
             <input name="hourlyRate" type="number" min={0} step={100} defaultValue={8000} required />

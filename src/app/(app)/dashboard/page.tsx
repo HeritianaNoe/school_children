@@ -71,8 +71,8 @@ export default async function Dashboard() {
 
   const perClass = staff
     ? await prisma.classe.findMany({
-        include: { _count: { select: { students: true } } },
-        orderBy: [{ year: "desc" }, { name: "asc" }],
+        include: { schoolYear: true, _count: { select: { students: true } } },
+        orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
       })
     : [];
 
@@ -185,7 +185,7 @@ export default async function Dashboard() {
           <>
             <p style={{ margin: "8px 0 12px" }}>
               Les comptes créés utilisent un mot de passe initial. Invitez chaque utilisateur à le modifier dès sa première
-              connexion (menu « Mon compte »).
+              connexion.
             </p>
             <div className="row" style={{ gap: 20 }}>
               <div>
@@ -229,7 +229,7 @@ export default async function Dashboard() {
                     <td>
                       <strong>{c.name}</strong>
                     </td>
-                    <td className="muted">{c.year}</td>
+                    <td className="muted">{c.schoolYear.name}</td>
                     <td>{c._count.students}</td>
                     <td>
                       <Link href={`/classes/${c.id}`} className="btn-ghost btn-sm" title="Gérer">

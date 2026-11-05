@@ -6,7 +6,7 @@ import StudentForm from "@/components/StudentForm";
 
 export default async function NewStudentPage() {
   await requireUser(["ADMIN", "DIRECTOR"]);
-  const classes = await prisma.classe.findMany({ orderBy: [{ year: "desc" }, { name: "asc" }] });
+  const classes = await prisma.classe.findMany({ include: { schoolYear: true }, orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }] });
 
   return (
     <>

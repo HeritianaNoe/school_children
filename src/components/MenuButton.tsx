@@ -27,7 +27,6 @@ export default function MenuButton() {
         aria-controls="sidebar"
       >
         <Icon name="menu" size={20} />
-        <span>Menu</span>
       </button>
     </div>
   );

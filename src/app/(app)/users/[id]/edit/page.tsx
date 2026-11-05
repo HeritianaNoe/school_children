@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { ROLE_LABEL } from "@/lib/labels";
+import { ROLE_LABEL, TEACHER_STATUS_LABEL, TEACHER_STATUS_VALUES } from "@/lib/labels";
 import { updateUser } from "@/app/actions/users";
 import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
 import { userImageUrl } from "@/lib/avatar";
@@ -14,7 +14,7 @@ export default async function EditUserPage({ params }: { params: { id: string } 
     where: { id: params.id },
     include: {
       student: { select: { id: true, matricule: true, sex: true, photoUrl: true, phone: true, firstName: true, lastName: true } },
-      teacher: { select: { id: true } },
+      teacher: { select: { id: true, status: true } },
     },
   });
   if (!user) notFound();
@@ -95,6 +95,18 @@ export default async function EditUserPage({ params }: { params: { id: string } 
               </label>
             )}
           </div>
+          {user.teacher && (
+            <label>
+              Statut de l&apos;enseignant
+              <select name="teacherStatus" defaultValue={user.teacher.status}>
+                {TEACHER_STATUS_VALUES.map((s) => (
+                  <option key={s} value={s}>
+                    {TEACHER_STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label>
             Rôle
             <select name="role" required defaultValue={user.role} disabled={isSelf}>

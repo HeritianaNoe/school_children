@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
   const sessionId = url.searchParams.get("session") || undefined;
   const { start, sessions } = await getPresents(day, classeId || undefined, sessionId);
-  const classe = classeId ? await prisma.classe.findUnique({ where: { id: classeId } }) : null;
+  const classe = classeId ? await prisma.classe.findUnique({ where: { id: classeId }, include: { schoolYear: true } }) : null;
 
   // Photos téléversées des élèves concernés (une seule requête)
   const studentIds = [...new Set(sessions.flatMap((s) => s.present.map((a) => a.student.id)))];
@@ -53,7 +53,7 @@ export async function GET(req: Request) {
 
   const bytes = await buildPresentsPdf({
     dateLabel: fmtDateFull(start),
-    classeLabel: classe ? `Classe : ${classe.name} (${classe.year})` : "Toutes les classes",
+    classeLabel: classe ? `Classe : ${classe.name} (${classe.schoolYear.name})` : "Toutes les classes",
     sessions: await Promise.all(
       sessions.map(async (s) => ({
         title: `${s.course.subject.name} — ${s.course.classe.name}`,

@@ -10,7 +10,7 @@ export default async function StudentNotesPage({ params }: { params: { id: strin
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },
-    include: { user: true, classe: true },
+    include: { user: true, classe: { include: { schoolYear: true } } },
   });
   if (!s) notFound();
   if (u.role === "STUDENT" && s.userId !== u.id) forbidden();
@@ -63,7 +63,7 @@ export default async function StudentNotesPage({ params }: { params: { id: strin
         <div>
           <h1>Notes par matière</h1>
           <p>
-            {s.lastName.toUpperCase()} {s.firstName} · {s.classe.name} ({s.classe.year})
+            {s.lastName.toUpperCase()} {s.firstName} · {s.classe.name} ({s.classe.schoolYear.name})
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

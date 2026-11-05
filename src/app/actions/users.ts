@@ -114,7 +114,7 @@ export async function updateUser(id: string, fd: FormData) {
   if (!parsed.success) fail(`/users/${id}/edit`, "validation");
 
   const d = parsed.data;
-  const existing = await prisma.user.findUnique({ where: { id }, include: { student: { select: { id: true } } } });
+  const existing = await prisma.user.findUnique({ where: { id }, include: { student: { select: { id: true } }, teacher: { select: { id: true } } } });
   if (!existing) fail("/users", "not_found");
 
   const photo = await readPhoto(fd);
@@ -166,6 +166,14 @@ export async function updateUser(id: string, fd: FormData) {
     });
   }
   await applyUserPhoto(id, photo, fd.get("removePhoto") === "on");
+
+  // Statut de l'enseignant (TITULAIRE, CONTRACTUEL, …)
+  const ts = z
+    .enum(["TITULAIRE", "CONTRACTUEL", "VACATAIRE", "PERMANENT", "STAGIAIRE"])
+    .safeParse(fd.get("teacherStatus"));
+  if (existing.teacher && ts.success) {
+    await prisma.teacher.update({ where: { id: existing.teacher.id }, data: { status: ts.data } });
+  }
 
   // Synchroniser la fiche Enseignant avec le rôle Utilisateur
   const withTeacher = await prisma.user.findUnique({

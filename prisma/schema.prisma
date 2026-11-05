@@ -50,6 +50,33 @@ enum PayslipStatus {
   PAID
 }
 
+// Nomenclature d'inscription de l'élève : Nouveau / Passant / Redoublant / Transféré
+enum Nomenclature {
+  NEW         // Nouveau
+  PROMOTED    // Passant
+  REPEATER    // Redoublant
+  TRANSFERRED // Transféré
+}
+
+enum TeacherStatus {
+  TITULAIRE
+  CONTRACTUEL
+  VACATAIRE
+  PERMANENT
+  STAGIAIRE
+
+  @@map("teacher_status")
+}
+
+enum SchoolYearStatus {
+  UPCOMING
+  ACTIVE
+  CLOSED
+  ARCHIVED
+
+  @@map("school_year_status")
+}
+
 // ───────── Auth / personnes ─────────
 model User {
   id           String   @id @default(cuid())
@@ -99,6 +126,7 @@ model Student {
   parentPhone  String?
   photoUrl     String?
   registeredAt DateTime  @default(now())
+  nomenclature Nomenclature @default(NEW)
 
   classeId     String
   classe       Classe    @relation(fields: [classeId], references: [id])
@@ -127,6 +155,7 @@ model Teacher {
   userId     String  @unique
   user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   hourlyRate Decimal @db.Decimal(12, 2)
+  status     TeacherStatus @default(CONTRACTUEL)
 
   courses     Course[]
   sessions    Session[]
@@ -136,14 +165,41 @@ model Teacher {
 }
 
 // ───────── Structure pédagogique ─────────
-model Classe {
-  id       String    @id @default(cuid())
-  name     String // ex: "6ème A"
-  year     String // ex: "2026-2027"
-  students Student[]
-  courses  Course[]
+// Les contraintes que Prisma ne sait pas exprimer (index unique partiel sur is_current, CHECK sur les dates)
+// sont créées par « scripts/db-constraints.ts », lancé automatiquement par db:push et db:reset.
+model SchoolYear {
+  id        String           @id @default(cuid())
+  name      String           @unique @db.VarChar(20) // ex: "2026-2027"
+  startDate DateTime         @map("start_date") @db.Date
+  endDate   DateTime         @map("end_date") @db.Date
+  isCurrent Boolean          @default(false) @map("is_current")
+  status    SchoolYearStatus @default(UPCOMING)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([name, year])
+  classes Classe[]
+  terms   Term[]
+
+  @@map("school_years")
+}
+
+model Classe {
+  id           String  @id @default(cuid())
+  schoolYearId String  @map("school_year_id")
+  name         String  @db.VarChar(50) // ex: "Terminale C1"
+  roomNumber   String? @map("room_number") @db.VarChar(20) // ex: "Salle 04"
+  capacity     Int?    @default(40)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  students   Student[]
+  courses    Course[]
+
+  // Pas deux classes du même nom dans une même année scolaire
+  @@unique([schoolYearId, name], map: "uq_class_per_year")
+  @@index([schoolYearId], map: "idx_classes_school_year")
+  @@map("classes")
 }
 
 model Subject {
@@ -237,11 +293,17 @@ model TeacherAttendance {
 
 // ───────── Notes ─────────
 model Term {
-  id          String       @id @default(cuid())
-  name        String
-  startDate   DateTime
-  endDate     DateTime
+  id           String   @id @default(cuid())
+  name         String
+  startDate    DateTime
+  endDate      DateTime
+  schoolYearId String   @map("school_year_id")
+
+  schoolYear  SchoolYear   @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   assessments Assessment[]
+
+  @@index([schoolYearId])
+  @@map("terms")
 }
 
 model Assessment {

@@ -11,7 +11,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   const s = await prisma.student.findUnique({
     where: { id: params.id },
-    include: { classe: true },
+    include: { classe: { include: { schoolYear: true } } },
   });
   if (!s) return new Response("Élève introuvable", { status: 404 });
   if (u.role === "STUDENT" && s.userId !== u.id) return new Response("Accès refusé", { status: 403 });
@@ -72,7 +72,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     firstName: s.firstName,
     lastName: s.lastName,
     classeName: s.classe.name,
-    year: s.classe.year,
+    year: s.classe.schoolYear.name,
     subjects,
   });
 

@@ -21,6 +21,7 @@ export default async function AssessmentPage({ params }: { params: { id: string 
           teacher: true,
           classe: {
             include: {
+              schoolYear: true,
               students: { orderBy: [{ lastName: "asc" }, { firstName: "asc" }] },
             },
           },
@@ -49,7 +50,7 @@ export default async function AssessmentPage({ params }: { params: { id: string 
         <div>
           <h1>{a.title}</h1>
           <p>
-            {a.course.classe.name} ({a.course.classe.year}) · {a.course.subject.name} ·{" "}
+            {a.course.classe.name} ({a.course.classe.schoolYear.name}) · {a.course.subject.name} ·{" "}
             {ASSESSMENT_TYPE_LABEL[a.type] ?? a.type} · {a.term.name} · {fmtDateFull(a.date)} · coef. {a.coefficient}
           </p>
         </div>

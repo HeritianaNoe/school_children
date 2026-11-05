@@ -18,6 +18,7 @@ export default async function ClassePage({
   const c = await prisma.classe.findUnique({
     where: { id: params.id },
     include: {
+      schoolYear: true,
       students: { orderBy: [{ lastName: "asc" }, { firstName: "asc" }] },
       courses: {
         include: { subject: true, teacher: { include: { user: true } }, _count: { select: { sessions: true, assessments: true } } },
@@ -27,6 +28,7 @@ export default async function ClassePage({
   });
   if (!c) notFound();
 
+  const schoolYears = await prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } });
   const subjects = await prisma.subject.findMany({ orderBy: { name: "asc" } });
   const teachers = await prisma.teacher.findMany({ include: { user: true }, orderBy: { user: { name: "asc" } } });
   const used = new Set(c.courses.map((x) => x.subjectId));
@@ -37,7 +39,7 @@ export default async function ClassePage({
       <div className="page-header">
         <div>
           <h1>
-            {c.name} <span className="muted">({c.year})</span>
+            {c.name} <span className="muted">({c.schoolYear.name})</span>
           </h1>
           <p>
             {c.students.length} élève{c.students.length > 1 ? "s" : ""} · {c.courses.length} matière
@@ -50,17 +52,32 @@ export default async function ClassePage({
       </div>
 
       {!readOnly && (
-      <form action={updateClasse} className="form-section" style={{ maxWidth: 640 }}>
+      <form action={updateClasse} className="form-section" style={{ maxWidth: 900 }}>
         <h3>Informations de la classe</h3>
         <input type="hidden" name="id" value={c.id} />
-        <div className="form-grid" style={{ gridTemplateColumns: "1fr 1fr auto", alignItems: "end" }}>
+        <div className="form-grid" style={{ gridTemplateColumns: "1.2fr 1fr 1fr 0.7fr auto", alignItems: "end" }}>
           <label>
             Nom de la classe *
-            <input name="name" required maxLength={60} defaultValue={c.name} />
+            <input name="name" required maxLength={50} defaultValue={c.name} />
           </label>
           <label>
             Année scolaire *
-            <input name="year" required pattern="\d{4}-\d{4}" title="Format attendu : 2026-2027" defaultValue={c.year} />
+            <select name="schoolYearId" required defaultValue={c.schoolYearId}>
+              {schoolYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name}
+                  {y.isCurrent ? " (courante)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Salle
+            <input name="roomNumber" maxLength={20} defaultValue={c.roomNumber ?? ""} />
+          </label>
+          <label>
+            Capacité
+            <input name="capacity" type="number" min={1} max={500} defaultValue={c.capacity ?? ""} />
           </label>
           <button type="submit">Enregistrer</button>
         </div>
@@ -244,7 +261,7 @@ export default async function ClassePage({
         </p>
         <form action={deleteClasse}>
           <input type="hidden" name="id" value={c.id} />
-          <ConfirmButton message={`Supprimer la classe ${c.name} (${c.year}) ? Cette action est irréversible.`}>
+          <ConfirmButton message={`Supprimer la classe ${c.name} (${c.schoolYear.name}) ? Cette action est irréversible.`}>
             Supprimer la classe
           </ConfirmButton>
         </form>

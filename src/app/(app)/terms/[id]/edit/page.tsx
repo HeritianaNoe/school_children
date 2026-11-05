@@ -7,7 +7,13 @@ import { toDateInput } from "@/lib/format";
 
 export default async function EditTermPage({ params }: { params: { id: string } }) {
   await requireUser(["ADMIN", "DIRECTOR"]);
-  const term = await prisma.term.findUnique({ where: { id: params.id } });
+  const [term, schoolYears] = await Promise.all([
+    prisma.term.findUnique({
+      where: { id: params.id },
+      include: { schoolYear: true },
+    }),
+    prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } }),
+  ]);
   if (!term) notFound();
 
   return (
@@ -15,7 +21,9 @@ export default async function EditTermPage({ params }: { params: { id: string } 
       <div className="page-header">
         <div>
           <h1>Modifier la période</h1>
-          <p>{term.name}</p>
+          <p>
+            {term.name} · {term.schoolYear.name}
+          </p>
         </div>
         <Link href="/terms" className="btn-secondary btn">
           ← Toutes les périodes
@@ -28,6 +36,17 @@ export default async function EditTermPage({ params }: { params: { id: string } 
           <label>
             Nom *
             <input name="name" required maxLength={60} defaultValue={term.name} />
+          </label>
+          <label>
+            Année scolaire *
+            <select name="schoolYearId" required defaultValue={term.schoolYearId}>
+              {schoolYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name}
+                  {y.isCurrent ? " (courante)" : ""}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Début *

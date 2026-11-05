@@ -13,17 +13,23 @@ export default function LoginPage({
           <span className="brand-mark">
             <Icon name="school" size={22} />
           </span>
-          Gestion scolaire
+          École lumière
         </div>
         <div className="login-pitch">
           <h2>Toute la vie de l&apos;école, au même endroit.</h2>
-          <p>Élèves, notes, présences, annonces et paie des enseignants : un seul espace pour toute l&apos;équipe.</p>
+          <p>La vie est une école permanente, peu importe où tu vas.</p>
         </div>
         <div className="login-foot">Accès réservé aux membres de l&apos;établissement</div>
       </section>
 
       <section className="login-panel">
         <div className="login-card">
+          <div className="login-school" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <span className="brand-mark">
+              <Icon name="school" size={22} />
+            </span>
+            <strong style={{ fontSize: "1.15rem" }}>École lumière</strong>
+          </div>
           <h1>Connexion</h1>
           <p className="muted">Entrez vos identifiants pour accéder à votre espace.</p>
 

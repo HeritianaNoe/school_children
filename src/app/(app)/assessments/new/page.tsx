@@ -9,10 +9,13 @@ export default async function NewAssessmentPage() {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const courses = await prisma.course.findMany({
     where: u.role === "TEACHER" ? { teacher: { userId: u.id } } : {},
-    include: { classe: true, subject: true },
+    include: { classe: { include: { schoolYear: true } }, subject: true },
     orderBy: [{ classe: { name: "asc" } }, { subject: { name: "asc" } }],
   });
-  const terms = await prisma.term.findMany({ orderBy: { startDate: "desc" } });
+  const terms = await prisma.term.findMany({
+    include: { schoolYear: true },
+    orderBy: [{ schoolYear: { startDate: "desc" } }, { startDate: "desc" }],
+  });
   const ready = courses.length > 0 && terms.length > 0;
 
   return (
@@ -54,7 +57,7 @@ export default async function NewAssessmentPage() {
               <select name="courseId" required>
                 {courses.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.classe.name} ({c.classe.year}) · {c.subject.name}
+                    {c.classe.name} ({c.classe.schoolYear.name}) · {c.subject.name}
                   </option>
                 ))}
               </select>
@@ -64,7 +67,7 @@ export default async function NewAssessmentPage() {
               <select name="termId" required>
                 {terms.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name}
+                    {t.name} ({t.schoolYear.name})
                   </option>
                 ))}
               </select>

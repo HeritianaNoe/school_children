@@ -23,3 +23,8 @@ export const toTimeInput = (d: Date | null | undefined) => {
 };
 /** « 2026-11-02 » → Date à midi (heure locale) : évite les décalages de jour liés au fuseau horaire. */
 export const parseDateInput = (s: string) => new Date(`${s}T12:00:00`);
+
+/** Colonnes PostgreSQL DATE (stockées à minuit UTC) : lecture en UTC pour éviter un décalage de jour. */
+export const toUtcDateInput = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
+export const fmtUtcDate = (d: Date | null | undefined) =>
+  d ? d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }) : "—";

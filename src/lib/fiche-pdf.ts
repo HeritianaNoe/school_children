@@ -17,6 +17,7 @@ export type FicheData = {
   registeredAt: Date;
   classeName: string;
   year: string;
+  nomenclature: string;
   photo: { data: Uint8Array; mime: string } | null;
 };
 
@@ -122,6 +123,7 @@ export async function buildFichePdf(s: FicheData): Promise<Uint8Array> {
   section("Scolarité");
   field("Classe", s.classeName, 0);
   field("Année scolaire", s.year, 1);
+  field("Nomenclature", s.nomenclature, "full");
 
   // ── Signatures
   const sy = 130;

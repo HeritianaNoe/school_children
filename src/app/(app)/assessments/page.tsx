@@ -16,13 +16,18 @@ export default async function AssessmentsPage({
 
   const classes = await prisma.classe.findMany({
     where: { courses: { some: ownCourses } },
-    orderBy: [{ year: "desc" }, { name: "asc" }],
+    include: { schoolYear: true },
+    orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
   });
   const list = await prisma.assessment.findMany({
     where: { course: { ...ownCourses, ...(classeId ? { classeId } : {}) } },
     orderBy: { date: "desc" },
     take: 100,
-    include: { course: { include: { classe: true, subject: true } }, term: true, _count: { select: { grades: true } } },
+    include: {
+      course: { include: { classe: { include: { schoolYear: true } }, subject: true } },
+      term: { include: { schoolYear: true } },
+      _count: { select: { grades: true } },
+    },
   });
 
   return (
@@ -45,7 +50,7 @@ export default async function AssessmentsPage({
             <option value="">Toutes les classes</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.year})
+                {c.name} ({c.schoolYear.name})
               </option>
             ))}
           </select>
@@ -76,7 +81,10 @@ export default async function AssessmentsPage({
                 </td>
                 <td>{a.course.classe.name}</td>
                 <td>{a.course.subject.name}</td>
-                <td className="muted">{a.term.name}</td>
+                <td className="muted">
+                  {a.term.name}
+                  <span style={{ opacity: 0.75 }}> ({a.term.schoolYear.name})</span>
+                </td>
                 <td>{a.coefficient}</td>
                 <td>{a._count.grades}</td>
                 <td>

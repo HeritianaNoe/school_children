@@ -20,7 +20,7 @@ export async function getPresents(day: string, classeId?: string, sessionId?: st
     },
     orderBy: { startsAt: "asc" },
     include: {
-      course: { include: { classe: true, subject: true, teacher: { include: { user: true } } } },
+      course: { include: { classe: { include: { schoolYear: true } }, subject: true, teacher: { include: { user: true } } } },
       teacher: { include: { user: true } },
       studentAttendance: {
         where: { status: { in: ["PRESENT", "LATE"] } },

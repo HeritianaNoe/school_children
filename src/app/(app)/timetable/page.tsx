@@ -20,7 +20,7 @@ export default async function TimetablePage({ searchParams }: { searchParams: { 
   const [classes, teachers] = !canFilter
     ? [[], []]
     : await Promise.all([
-        prisma.classe.findMany({ orderBy: [{ year: "desc" }, { name: "asc" }] }),
+        prisma.classe.findMany({ include: { schoolYear: true }, orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }] }),
         prisma.teacher.findMany({ include: { user: true }, orderBy: { user: { name: "asc" } } }),
       ]);
 
@@ -82,7 +82,7 @@ export default async function TimetablePage({ searchParams }: { searchParams: { 
               <optgroup label="Classes">
                 {classes.map((c) => (
                   <option key={c.id} value={`c:${c.id}`}>
-                    {c.name} ({c.year})
+                    {c.name} ({c.schoolYear.name})
                   </option>
                 ))}
               </optgroup>

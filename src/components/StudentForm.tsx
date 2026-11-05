@@ -2,8 +2,9 @@ import Link from "next/link";
 import { defaultAvatarUrl } from "@/lib/avatar";
 import PhotoInput from "./PhotoInput";
 import { toDateInput } from "@/lib/format";
+import { NOMENCLATURE_LABEL, NOMENCLATURE_VALUES } from "@/lib/labels";
 
-type ClasseOpt = { id: string; name: string; year: string };
+type ClasseOpt = { id: string; name: string; schoolYear: { name: string } };
 type StudentValues = {
   id: string;
   firstName: string;
@@ -17,6 +18,7 @@ type StudentValues = {
   parentPhone: string | null;
   classeId: string;
   registeredAt: Date;
+  nomenclature: string;
   photoUrl: string | null;
   email: string;
 };
@@ -117,7 +119,17 @@ export default function StudentForm({
               <option value="">— Choisir une classe —</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.year})
+                  {c.name} ({c.schoolYear.name})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Nomenclature *
+            <select name="nomenclature" required defaultValue={student?.nomenclature ?? "NEW"}>
+              {NOMENCLATURE_VALUES.map((n) => (
+                <option key={n} value={n}>
+                  {NOMENCLATURE_LABEL[n]}
                 </option>
               ))}
             </select>

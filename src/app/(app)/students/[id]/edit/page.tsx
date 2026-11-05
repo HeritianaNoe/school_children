@@ -9,7 +9,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
   await requireUser(["ADMIN", "DIRECTOR"]);
   const s = await prisma.student.findUnique({ where: { id: params.id }, include: { user: true } });
   if (!s) notFound();
-  const classes = await prisma.classe.findMany({ orderBy: [{ year: "desc" }, { name: "asc" }] });
+  const classes = await prisma.classe.findMany({ include: { schoolYear: true }, orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }] });
 
   return (
     <>

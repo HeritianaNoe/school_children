@@ -3,7 +3,8 @@ import { studentImageUrl } from "@/lib/avatar";
 import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
-import { SEX_LABEL } from "@/lib/labels";
+import { SEX_LABEL, NOMENCLATURE_LABEL } from "@/lib/labels";
+import { fmtDateFull } from "@/lib/format";
 
 export default async function StudentsPage({
   searchParams,
@@ -14,7 +15,7 @@ export default async function StudentsPage({
   const q = (searchParams.q ?? "").trim();
   const classeId = searchParams.classe ?? "";
 
-  const classes = await prisma.classe.findMany({ orderBy: [{ year: "desc" }, { name: "asc" }] });
+  const classes = await prisma.classe.findMany({ include: { schoolYear: true }, orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }] });
   const list = await prisma.student.findMany({
     where: {
       ...(classeId ? { classeId } : {}),
@@ -61,7 +62,7 @@ export default async function StudentsPage({
             <option value="">Toutes les classes</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.year})
+                {c.name} ({c.schoolYear.name})
               </option>
             ))}
           </select>
@@ -82,7 +83,8 @@ export default async function StudentsPage({
               <th>Matricule</th>
               <th>Sexe</th>
               <th>Classe</th>
-              <th>Parent / tuteur</th>
+              <th>Nomenclature</th>
+              <th>Date d&apos;inscription</th>
               <th></th>
             </tr>
           </thead>
@@ -105,14 +107,8 @@ export default async function StudentsPage({
                   {s.sex ? <span className={`tag ${s.sex}`}>{SEX_LABEL[s.sex]}</span> : "—"}
                 </td>
                 <td>{s.classe.name}</td>
-                <td>
-                  {s.parentName || "—"}
-                  {s.parentPhone && (
-                    <div className="muted" style={{ fontSize: "0.8rem" }}>
-                      {s.parentPhone}
-                    </div>
-                  )}
-                </td>
+                <td>{NOMENCLATURE_LABEL[s.nomenclature]}</td>
+                <td>{fmtDateFull(s.registeredAt)}</td>
                 <td>
                   <Link href={`/students/${s.id}`} className="btn-ghost btn-sm" title="Voir le dossier" aria-label="Voir le dossier">
                     <Icon name="eye" size={16} />
@@ -122,7 +118,7 @@ export default async function StudentsPage({
             ))}
             {list.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", padding: 32 }} className="muted">
+                <td colSpan={7} style={{ textAlign: "center", padding: 32 }} className="muted">
                   {q || classeId ? "Aucun élève ne correspond à votre recherche." : "Aucun élève inscrit pour le moment."}
                 </td>
               </tr>

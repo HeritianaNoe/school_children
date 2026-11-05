@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "db:push": "prisma db push",
-    "db:reset": "prisma db push --force-reset && prisma db seed",
+    "db:push": "prisma db push && tsx scripts/db-constraints.ts",
+    "db:reset": "prisma db push --force-reset && tsx scripts/db-constraints.ts && prisma db seed",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "alerts": "tsx scripts/run-alerts.ts"

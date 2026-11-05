@@ -7,7 +7,7 @@ import { studentAverage } from "@/lib/grades";
 import { addComment } from "@/app/actions/comments";
 import { deleteStudent } from "@/app/actions/students";
 import { fmtDate, fmtDateFull } from "@/lib/format";
-import { SEX_LABEL } from "@/lib/labels";
+import { SEX_LABEL, NOMENCLATURE_LABEL } from "@/lib/labels";
 import { forbidden } from "@/lib/flash";
 import ConfirmButton from "@/components/ConfirmButton";
 import PrintButton from "@/components/PrintButton";
@@ -22,7 +22,7 @@ export default async function StudentPage({
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },
-    include: { user: true, classe: true },
+    include: { user: true, classe: { include: { schoolYear: true } } },
   });
   if (!s) notFound();
   if (u.role === "STUDENT" && s.userId !== u.id) forbidden();
@@ -76,7 +76,7 @@ export default async function StudentPage({
               {s.lastName.toUpperCase()} {s.firstName}
             </h1>
             <p>
-              {s.matricule} · {s.classe.name} ({s.classe.year}) · {sexLabel}
+              {s.matricule} · {s.classe.name} ({s.classe.schoolYear.name}) · {NOMENCLATURE_LABEL[s.nomenclature]} · {sexLabel}
             </p>
           </div>
         </div>

@@ -8,8 +8,8 @@ const sans = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: "Gestion scolaire",
-  description: "Application de gestion d'établissement scolaire",
+  title: "École lumière",
+  description: "Application de gestion d'établissement scolaire — École lumière",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -36,6 +36,7 @@ async function main() {
     prisma.student.deleteMany(),
     prisma.teacher.deleteMany(),
     prisma.classe.deleteMany(),
+    prisma.schoolYear.deleteMany(),
     prisma.user.deleteMany(),
   ]);
 
@@ -48,23 +49,52 @@ async function main() {
     ],
   });
 
-  const mk = (email: string, name: string, rate: number, sex: "M" | "F") =>
+  const mk = (
+    email: string,
+    name: string,
+    rate: number,
+    sex: "M" | "F",
+    phone: string,
+    status: "TITULAIRE" | "CONTRACTUEL" | "VACATAIRE" | "PERMANENT" | "STAGIAIRE" = "CONTRACTUEL"
+  ) =>
     prisma.teacher.create({
       data: {
         hourlyRate: rate,
-        user: { create: { email, name, role: "TEACHER", sex, passwordHash: hash } },
+        status,
+        user: { create: { email, name, role: "TEACHER", sex, phone, passwordHash: hash } },
       },
     });
 
-  // Enseignants
-  const tMath = await mk("rakoto@ecole.mg", "Jean Rakoto", 8000, "M"); // Mathématiques — Prénom: Jean, Nom: Rakoto
-  const tFr = await mk("rasoa@ecole.mg", "Marie Rasoa", 9000, "F"); // Français — Prénom: Marie, Nom: Rasoa
-  const tMg = await mk("randrian@ecole.mg", "Hery Randrianarisoa", 8500, "M"); // Malagasy — Prénom: Hery, Nom: Randrianarisoa
-  const tHist = await mk("rala@ecole.mg", "Voahirana Ralambo", 8200, "F"); // Histoire — Prénom: Voahirana, Nom: Ralambo
+  // Enseignants (téléphone renseigné)
+  const tMath = await mk("rakoto@ecole.mg", "Jean Rakoto", 8000, "M", "+261 34 11 111 11", "TITULAIRE"); // Mathématiques
+  const tFr = await mk("rasoa@ecole.mg", "Marie Rasoa", 9000, "F", "+261 34 22 222 22", "PERMANENT"); // Français
+  const tMg = await mk("randrian@ecole.mg", "Hery Randrianarisoa", 8500, "M", "+261 34 33 333 33"); // Malagasy
+  const tHist = await mk("rala@ecole.mg", "Voahirana Ralambo", 8200, "F", "+261 34 44 444 44", "VACATAIRE"); // Histoire
 
-  const year = "2026-2027";
-  const classeA = await prisma.classe.create({ data: { name: "6ème A", year } });
-  const classeB = await prisma.classe.create({ data: { name: "5ème B", year } });
+  // Années scolaires : 2026-2027 est l'année courante, 2025-2026 est clôturée (alimente « Historique des années »)
+  const sy2627 = await prisma.schoolYear.create({
+    data: {
+      name: "2026-2027",
+      startDate: new Date("2026-09-01T12:00:00"),
+      endDate: new Date("2027-07-15T12:00:00"),
+      status: "ACTIVE",
+      isCurrent: true,
+    },
+  });
+  const sy2526 = await prisma.schoolYear.create({
+    data: {
+      name: "2025-2026",
+      startDate: new Date("2025-09-01T12:00:00"),
+      endDate: new Date("2026-07-15T12:00:00"),
+      status: "CLOSED",
+    },
+  });
+  const classeA = await prisma.classe.create({
+    data: { name: "6ème A", schoolYearId: sy2627.id, roomNumber: "Salle 1", capacity: 40 },
+  });
+  const classeB = await prisma.classe.create({
+    data: { name: "5ème B", schoolYearId: sy2627.id, roomNumber: "Salle 2", capacity: 40 },
+  });
 
   // Matières
   const maths = await prisma.subject.create({ data: { name: "Mathématiques" } });
@@ -139,6 +169,8 @@ async function main() {
             parentName: `Parent de ${firstName}`,
             parentPhone: `+261 32 11 22 ${String(startIdx + i).padStart(2, "0")}`,
             registeredAt: at(30 - i, 9),
+            // Variété de nomenclatures pour la démonstration : Nouveau, Passant, Redoublant, Transféré
+            nomenclature: (["NEW", "PROMOTED", "NEW", "REPEATER", "TRANSFERRED"] as const)[i % 5],
             classe: { connect: { id: classeId } },
             user: {
               create: {
@@ -159,7 +191,9 @@ async function main() {
   const studentsB = await createStudents(namesB, classeB.id, "M26", 6);
 
   // Année précédente (alimente « Historique des années ») : une classe archivée avec 2 matières et 3 élèves
-  const classePrev = await prisma.classe.create({ data: { name: "6ème A", year: "2025-2026" } });
+  const classePrev = await prisma.classe.create({
+    data: { name: "6ème A", schoolYearId: sy2526.id, roomNumber: "Salle 1", capacity: 40 },
+  });
   await prisma.course.createMany({
     data: [
       { classeId: classePrev.id, subjectId: maths.id, teacherId: tMath.id, coefficient: 3 },
@@ -252,7 +286,12 @@ async function main() {
   }
 
   const term = await prisma.term.create({
-    data: { name: "Trimestre 1", startDate: at(60, 0), endDate: at(-60, 0) },
+    data: {
+      name: "Trimestre 1",
+      startDate: at(60, 0),
+      endDate: at(-60, 0),
+      schoolYearId: sy2627.id,
+    },
   });
 
   for (const [course, title, students] of [

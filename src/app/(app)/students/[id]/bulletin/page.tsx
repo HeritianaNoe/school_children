@@ -11,7 +11,7 @@ export default async function StudentBulletinPage({ params }: { params: { id: st
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },
-    include: { user: true, classe: true },
+    include: { user: true, classe: { include: { schoolYear: true } } },
   });
   if (!s) notFound();
   if (u.role === "STUDENT" && s.userId !== u.id) forbidden();
@@ -37,7 +37,7 @@ export default async function StudentBulletinPage({ params }: { params: { id: st
           <div>
             <div className="muted" style={{ fontSize: "0.8rem", marginBottom: 4 }}>ÉTABLISSEMENT SCOLAIRE</div>
             <h1>BULLETIN</h1>
-            <p>Classe : <strong>{s.classe.name}</strong> · Année : <strong>{s.classe.year}</strong></p>
+            <p>Classe : <strong>{s.classe.name}</strong> · Année : <strong>{s.classe.schoolYear.name}</strong></p>
             <p>Élève : <strong>{s.lastName.toUpperCase()} {s.firstName}</strong></p>
           </div>
           <div className="muted">Date : {fmtDate(new Date())}</div>

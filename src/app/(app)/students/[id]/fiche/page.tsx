@@ -5,13 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import PrintButton from "@/components/PrintButton";
 import { fmtDateFull } from "@/lib/format";
-import { SEX_LABEL_LONG } from "@/lib/labels";
+import { SEX_LABEL_LONG, NOMENCLATURE_LABEL } from "@/lib/labels";
 
 export default async function FichePage({ params }: { params: { id: string } }) {
   await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const s = await prisma.student.findUnique({
     where: { id: params.id },
-    include: { user: true, classe: true },
+    include: { user: true, classe: { include: { schoolYear: true } } },
   });
   if (!s) notFound();
 
@@ -45,7 +45,7 @@ export default async function FichePage({ params }: { params: { id: string } }) 
             </div>
             <h1>FICHE D&apos;INSCRIPTION</h1>
             <p style={{ marginTop: 8 }}>
-              Année scolaire <strong>{s.classe.year}</strong>
+              Année scolaire <strong>{s.classe.schoolYear.name}</strong>
             </p>
             <p>
               Matricule : <strong>{s.matricule}</strong>
@@ -119,7 +119,11 @@ export default async function FichePage({ params }: { params: { id: string } }) 
           </div>
           <div className="fiche-field">
             <label>Année scolaire</label>
-            <div>{s.classe.year}</div>
+            <div>{s.classe.schoolYear.name}</div>
+          </div>
+          <div className="fiche-field">
+            <label>Nomenclature</label>
+            <div>{NOMENCLATURE_LABEL[s.nomenclature]}</div>
           </div>
         </div>
 

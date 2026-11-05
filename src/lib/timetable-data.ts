@@ -14,7 +14,7 @@ export async function getTimetable(u: SessionUser, rawVue?: string | null) {
     u.role === "TEACHER" ? prisma.teacher.findUnique({ where: { userId: u.id } }) : null,
     isStudent || u.role === "TEACHER"
       ? null
-      : prisma.classe.findFirst({ orderBy: [{ year: "desc" }, { name: "asc" }] }),
+      : prisma.classe.findFirst({ include: { schoolYear: true }, orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }] }),
   ]);
 
   let vue = rawVue ?? "";

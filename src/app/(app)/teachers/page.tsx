@@ -2,8 +2,8 @@ import Link from "next/link";
 import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { fmtAr } from "@/lib/format";
 import { userImageUrl } from "@/lib/avatar";
+import { TEACHER_STATUS_LABEL } from "@/lib/labels";
 
 export default async function TeachersPage() {
   await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
@@ -53,15 +53,16 @@ export default async function TeachersPage() {
             <tr>
               <th>Nom</th>
               <th>Adresse e-mail</th>
-              <th>Taux horaire</th>
+              <th>Téléphone</th>
               <th>Statut</th>
+              <th>Compte</th>
               <th style={{ width: 100 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={5} className="muted" style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={6} className="muted" style={{ textAlign: "center", padding: 24 }}>
                   Aucun enseignant. Créez-en un ici ou ajoutez un utilisateur avec le rôle Enseignant.
                 </td>
               </tr>
@@ -76,7 +77,8 @@ export default async function TeachersPage() {
                     </div>
                   </td>
                   <td className="muted">{u.email}</td>
-                  <td>{u.teacher ? fmtAr(Number(u.teacher.hourlyRate)) : "—"}</td>
+                  <td>{u.phone || "—"}</td>
+                  <td>{u.teacher ? <span className="tag">{TEACHER_STATUS_LABEL[u.teacher.status]}</span> : "—"}</td>
                   <td>
                     {u.active ? (
                       <span className="tag tag-success">Actif</span>

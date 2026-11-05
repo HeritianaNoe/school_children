@@ -16,6 +16,7 @@ const createSchema = z.object({
   firstName: z.string().min(1).max(80),
   email: z.string().email().max(160),
   hourlyRate: z.coerce.number().min(0),
+  status: z.enum(["TITULAIRE", "CONTRACTUEL", "VACATAIRE", "PERMANENT", "STAGIAIRE"]).default("CONTRACTUEL"),
   phone: z.string().max(40).optional(),
   active: z.boolean().optional(),
 });
@@ -27,6 +28,7 @@ export async function createTeacher(fd: FormData) {
     firstName: String(fd.get("firstName") ?? "").trim(),
     email: String(fd.get("email") ?? "").trim().toLowerCase(),
     hourlyRate: fd.get("hourlyRate"),
+    status: fd.get("status") || undefined,
     phone: String(fd.get("phone") ?? "").trim() || undefined,
     active: fd.get("active") === "on" || fd.get("active") === "true",
   });
@@ -48,6 +50,7 @@ export async function createTeacher(fd: FormData) {
     const teacher = await prisma.teacher.create({
       data: {
         hourlyRate: d.hourlyRate,
+        status: d.status,
         user: {
           create: {
             name: `${d.lastName} ${d.firstName}`,

@@ -20,7 +20,8 @@ export default async function PresentsPage({
   const day = parseDay(searchParams.date);
   const classes = await prisma.classe.findMany({
     where: { students: { some: {} } }, // uniquement les classes qui ont des élèves
-    orderBy: [{ year: "desc" }, { name: "asc" }],
+    include: { schoolYear: true },
+    orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
   });
   const classeId = isStudent
     ? own?.classeId ?? ""
@@ -42,7 +43,7 @@ export default async function PresentsPage({
       groups.push({
         classeId: cid,
         classeName: s.course.classe.name,
-        year: s.course.classe.year,
+        year: s.course.classe.schoolYear.name,
         sessions: [],
       });
     }
@@ -79,7 +80,7 @@ export default async function PresentsPage({
             <option value="">Toutes les classes</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.year})
+                {c.name} ({c.schoolYear.name})
               </option>
             ))}
           </select>
@@ -142,7 +143,6 @@ export default async function PresentsPage({
                         <table>
                           <thead>
                             <tr>
-                              <th>Photo</th>
                               <th>Élève</th>
                               <th>Statut</th>
                               <th>Retard</th>
@@ -152,11 +152,13 @@ export default async function PresentsPage({
                             {present.map((a) => (
                               <tr key={a.id}>
                                 <td>
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={studentImageUrl(a.student)} alt="" className="thumb" />
-                                </td>
-                                <td>
-                                  <strong>{a.student.lastName.toUpperCase()}</strong> {a.student.firstName}
+                                  <div className="row">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={studentImageUrl(a.student)} alt="" className="thumb" />
+                                    <span>
+                                      {a.student.lastName.toUpperCase()} {a.student.firstName}
+                                    </span>
+                                  </div>
                                 </td>
                                 <td>
                                   <span className={`tag ${a.status}`}>{ATTENDANCE_LABEL[a.status] ?? a.status}</span>

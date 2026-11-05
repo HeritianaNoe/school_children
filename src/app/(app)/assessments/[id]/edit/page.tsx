@@ -11,11 +11,14 @@ export default async function EditAssessmentPage({ params }: { params: { id: str
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const a = await prisma.assessment.findUnique({
     where: { id: params.id },
-    include: { course: { include: { classe: true, subject: true, teacher: true } } },
+    include: { course: { include: { classe: { include: { schoolYear: true } }, subject: true, teacher: true } } },
   });
   if (!a) notFound();
   if (u.role === "TEACHER" && a.course.teacher.userId !== u.id) forbidden();
-  const terms = await prisma.term.findMany({ orderBy: { startDate: "desc" } });
+  const terms = await prisma.term.findMany({
+    include: { schoolYear: true },
+    orderBy: [{ schoolYear: { startDate: "desc" } }, { startDate: "desc" }],
+  });
 
   return (
     <>
@@ -23,7 +26,7 @@ export default async function EditAssessmentPage({ params }: { params: { id: str
         <div>
           <h1>Modifier l&apos;évaluation</h1>
           <p>
-            {a.course.classe.name} ({a.course.classe.year}) · {a.course.subject.name}
+            {a.course.classe.name} ({a.course.classe.schoolYear.name}) · {a.course.subject.name}
           </p>
         </div>
         <Link href={`/assessments/${a.id}`} className="btn-secondary btn">
@@ -53,7 +56,7 @@ export default async function EditAssessmentPage({ params }: { params: { id: str
             <select name="termId" defaultValue={a.termId} required>
               {terms.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name}
+                  {t.name} ({t.schoolYear.name})
                 </option>
               ))}
             </select>

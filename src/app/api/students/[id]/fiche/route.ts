@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { defaultAvatarUrl } from "@/lib/avatar";
 import { getSession } from "@/lib/session";
 import { buildFichePdf } from "@/lib/fiche-pdf";
+import { NOMENCLATURE_LABEL } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   const s = await prisma.student.findUnique({
     where: { id: params.id },
-    include: { user: true, classe: true, photo: true },
+    include: { user: true, classe: { include: { schoolYear: true } }, photo: true },
   });
   if (!s) return new Response("Élève introuvable", { status: 404 });
 
@@ -48,7 +49,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     parentPhone: s.parentPhone,
     registeredAt: s.registeredAt,
     classeName: s.classe.name,
-    year: s.classe.year,
+    year: s.classe.schoolYear.name,
+    nomenclature: NOMENCLATURE_LABEL[s.nomenclature],
     photo: s.photo ? { data: s.photo.data, mime: s.photo.mime } : await defaultPhoto(s.sex, s.id),
   });
 
