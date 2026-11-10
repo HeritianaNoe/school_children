@@ -1,9 +1,9 @@
 import Link from "next/link";
+import PdfLink from "@/components/PdfLink";
 import { studentImageUrl } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import PrintButton from "@/components/PrintButton";
 import { fmtDateFull } from "@/lib/format";
 import { SEX_LABEL_LONG, NOMENCLATURE_LABEL } from "@/lib/labels";
 
@@ -27,11 +27,8 @@ export default async function FichePage({ params }: { params: { id: string } }) 
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <a href={`/api/students/${s.id}/fiche`} className="btn">
-            Télécharger le PDF
-          </a>
-          <PrintButton label="Imprimer" />
-          <Link href={`/students/${s.id}`} className="btn-secondary btn">
+          <PdfLink href={`/api/students/${s.id}/fiche`} />
+            <Link href={`/students/${s.id}`} className="btn-secondary btn">
             ← Retour
           </Link>
         </div>

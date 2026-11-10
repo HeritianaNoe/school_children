@@ -38,12 +38,7 @@ export default function TopBar() {
         aria-expanded={open}
         aria-controls="sidebar"
         title={open ? "Masquer le menu" : "Afficher le menu"}
-        style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center",
-          transform: "translateY(1px)" // Natao hiakatra kokoa
-        }}
+        style={{ transform: "translateY(1px)" }}
       >
         <Icon name={open ? "close" : "menu"} size={20} />
       </button>

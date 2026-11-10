@@ -3,33 +3,59 @@ import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { userImageUrl } from "@/lib/avatar";
-import { TEACHER_STATUS_LABEL } from "@/lib/labels";
+import { TEACHER_STATUS_LABEL, TEACHER_STATUS_VALUES } from "@/lib/labels";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
-export default async function TeachersPage() {
+export default async function TeachersPage({ searchParams }: { searchParams: { q?: string; statut?: string; page?: string } }) {
   await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
 
-  // Tous les utilisateurs avec le rôle TEACHER (source de vérité = Utilisateurs)
-  const teacherUsers = await prisma.user.findMany({
-    where: { role: "TEACHER" },
-    include: { teacher: true },
-    orderBy: { name: "asc" },
-  });
+  const q = (searchParams.q ?? "").trim();
+  const statut = (TEACHER_STATUS_VALUES as readonly string[]).includes(searchParams.statut ?? "")
+    ? (searchParams.statut as (typeof TEACHER_STATUS_VALUES)[number])
+    : "";
 
-  // Créer la fiche Teacher manquante pour les comptes TEACHER sans fiche
-  for (const u of teacherUsers) {
-    if (!u.teacher) {
-      await prisma.teacher.create({
-        data: { userId: u.id, hourlyRate: 0 },
-      });
-    }
+  // Créer les fiches Teacher manquantes (comptes TEACHER sans fiche), indépendamment des filtres
+  const missing = await prisma.user.findMany({
+    where: { role: "TEACHER", teacher: { is: null } },
+    select: { id: true },
+  });
+  if (missing.length > 0) {
+    await prisma.teacher.createMany({
+      data: missing.map((u) => ({ userId: u.id, hourlyRate: 0 })),
+      skipDuplicates: true,
+    });
   }
 
-  // Recharger avec les fiches à jour
-  const list = await prisma.user.findMany({
-    where: { role: "TEACHER" },
+  // Utilisateurs au rôle TEACHER (source de vérité = Utilisateurs), filtrés par nom et par statut
+  const all = await prisma.user.findMany({
+    where: {
+      role: "TEACHER",
+      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+      ...(statut ? { teacher: { is: { status: statut } } } : {}),
+    },
     include: { teacher: true },
     orderBy: { name: "asc" },
   });
+  const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
+  const pdf = {
+    title: "Enseignants",
+    subtitle: [
+      `${total} enseignant${total > 1 ? "s" : ""}`,
+      statut ? `Statut : ${TEACHER_STATUS_LABEL[statut]}` : "",
+      q ? `Recherche : ${q}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    headers: ["Nom", "Adresse e-mail", "Téléphone", "Statut", "Compte"],
+    rows: all.map((u) => [
+      u.name,
+      u.email,
+      u.phone || "—",
+      u.teacher ? TEACHER_STATUS_LABEL[u.teacher.status] : "—",
+      u.active ? "Actif" : "Inactif",
+    ]),
+  };
 
   return (
     <>
@@ -37,7 +63,7 @@ export default async function TeachersPage() {
         <div>
           <h1>Enseignants</h1>
           <p>
-            {list.length} enseignant{list.length > 1 ? "s" : ""} — même liste que les utilisateurs au rôle
+            {total} enseignant{total > 1 ? "s" : ""} — même liste que les utilisateurs au rôle
             « Enseignant »
           </p>
         </div>
@@ -46,6 +72,30 @@ export default async function TeachersPage() {
           Nouvel enseignant
         </Link>
       </div>
+
+      <form method="get" className="filters">
+        <label>
+          Recherche
+          <input name="q" defaultValue={q} placeholder="Nom de l'enseignant" />
+        </label>
+        <label>
+          Statut
+          <select name="statut" defaultValue={statut}>
+            <option value="">Tous les statuts</option>
+            {TEACHER_STATUS_VALUES.map((v) => (
+              <option key={v} value={v}>
+                {TEACHER_STATUS_LABEL[v]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit">Filtrer</button>
+        {(q || statut) && (
+          <Link href="/teachers" className="btn-secondary btn">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
 
       <div className="table-wrap">
         <table>
@@ -63,7 +113,7 @@ export default async function TeachersPage() {
             {list.length === 0 ? (
               <tr>
                 <td colSpan={6} className="muted" style={{ textAlign: "center", padding: 24 }}>
-                  Aucun enseignant. Créez-en un ici ou ajoutez un utilisateur avec le rôle Enseignant.
+                  {q || statut ? "Aucun enseignant ne correspond à votre recherche." : "Aucun enseignant. Créez-en un ici ou ajoutez un utilisateur avec le rôle Enseignant."}
                 </td>
               </tr>
             ) : (
@@ -114,6 +164,7 @@ export default async function TeachersPage() {
           </tbody>
         </table>
       </div>
+      <TableFooter path="/teachers" params={{ q, statut }} page={page} totalPages={totalPages} total={total} pdf={pdf} />
     </>
   );
 }

@@ -1,10 +1,10 @@
 import Link from "next/link";
+import PdfLink from "@/components/PdfLink";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { forbidden } from "@/lib/flash";
 import { fmtDate } from "@/lib/format";
-import PrintButton from "@/components/PrintButton";
 import { getBulletinData } from "@/lib/bulletin";
 
 export default async function StudentBulletinPage({ params }: { params: { id: string } }) {
@@ -86,10 +86,7 @@ export default async function StudentBulletinPage({ params }: { params: { id: st
       </article>
 
       <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 20 }}>
-        <a href={`/api/students/${s.id}/bulletin`} className="btn">
-          PDF
-        </a>
-        <PrintButton label="Imprimer" />
+        <PdfLink href={`/api/students/${s.id}/bulletin`} />
       </div>
     </>
   );

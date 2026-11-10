@@ -97,6 +97,8 @@ model User {
   notifications  Notification[]
   reclamations   Reclamation[]  @relation("ReclamationAuthor")
   announcements  Announcement[] @relation("AnnouncementAuthor")
+
+  @@index([role, name])
 }
 
 // Photo de profil stockée en base (même principe que StudentPhoto ; les comptes élèves utilisent StudentPhoto)
@@ -161,6 +163,7 @@ model Teacher {
   sessions    Session[]
   attendances TeacherAttendance[]
   payslips    Payslip[]
+  contracts   TeacherContract[]
   comments    Comment[]           @relation("CommentTeacher")
 }
 
@@ -177,8 +180,9 @@ model SchoolYear {
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  classes Classe[]
-  terms   Term[]
+  classes   Classe[]
+  terms     Term[]
+  contracts TeacherContract[]
 
   @@map("school_years")
 }
@@ -258,6 +262,7 @@ model Session {
 
   @@index([courseId, startsAt])
   @@index([teacherId, startsAt])
+  @@index([startsAt]) // tableau de bord, présences du jour, paie du mois
 }
 
 model StudentAttendance {
@@ -319,6 +324,9 @@ model Assessment {
   course Course  @relation(fields: [courseId], references: [id])
   term   Term    @relation(fields: [termId], references: [id])
   grades Grade[]
+
+  @@index([courseId])
+  @@index([termId])
 }
 
 model Grade {
@@ -332,6 +340,7 @@ model Grade {
   student    Student    @relation(fields: [studentId], references: [id])
 
   @@unique([assessmentId, studentId])
+  @@index([studentId]) // dossier, bulletin, moyennes : toutes les notes d'un élève
 }
 
 // ───────── Commentaires ─────────
@@ -384,6 +393,29 @@ model Payslip {
   teacher Teacher @relation(fields: [teacherId], references: [id])
 
   @@unique([teacherId, month])
+}
+
+// ───────── Contrats des enseignants (un par enseignant et par année scolaire) ─────────
+// Générés automatiquement quand une année devient courante ; les valeurs (taux horaire, statut) sont
+// figées au moment de la génération et peuvent être actualisées depuis la fiche de l'enseignant.
+model TeacherContract {
+  id           String        @id @default(cuid())
+  teacherId    String
+  schoolYearId String        @map("school_year_id")
+  number       String // ex : CT-2026-2027-A1B2C3
+  startDate    DateTime      @map("start_date") @db.Date
+  endDate      DateTime      @map("end_date") @db.Date
+  hourlyRate   Decimal       @map("hourly_rate") @db.Decimal(12, 2)
+  status       TeacherStatus
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  teacher    Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, schoolYearId], map: "uq_contract_per_year")
+  @@index([schoolYearId])
+  @@map("teacher_contracts")
 }
 
 // ───────── Réclamations ─────────

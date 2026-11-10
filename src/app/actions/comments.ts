@@ -21,7 +21,7 @@ export async function addComment(fd: FormData) {
   });
   if (!p.success || (!p.data.studentId && !p.data.teacherId)) fail("/dashboard", "validation");
   const d = p.data;
-  const path = d.studentId ? `/students/${d.studentId}` : `/teachers/${d.teacherId}`;
+  const path = d.studentId ? `/students/${d.studentId}/dossier` : `/teachers/${d.teacherId}`;
   if (d.teacherId && !isStaff(user.role)) forbidden(); // seule l'administration commente les enseignants
   await prisma.comment.create({ data: { ...d, authorId: user.id } });
   revalidatePath(path);

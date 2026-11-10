@@ -374,6 +374,9 @@ td .btn-ghost.btn-sm svg { display: block; }
 }
 .filters label { min-width: 180px; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; padding: 12px 0; }
+.table-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.table-footer-left { display: flex; align-items: center; gap: 8px; }
+.table-footer-pager { display: flex; align-items: center; gap: 12px; margin-left: auto; flex-wrap: wrap; }
 .danger-zone { border: 1px solid #fca5a5; background: #fff6f6; }
 
 /* ───────── Messages (toast) ───────── */
@@ -426,7 +429,7 @@ td .btn-ghost.btn-sm svg { display: block; }
   .content { padding: 0; max-width: none; }
   body { background: #fff; }
   .fiche { box-shadow: none; border: 1px solid #000; }
-  .toast { display: none !important; }
+  .toast, .confirm-overlay { display: none !important; }
   /* Impression d'une seule carte (bouton « Imprimer » d'une carte) */
   html.print-one .card:not(.print-target) { display: none !important; }
 }
@@ -447,6 +450,14 @@ td .btn-ghost.btn-sm svg { display: block; }
 }
 .fiche-field div {
   font-size: 1rem; padding: 4px 0; border-bottom: 1px solid #e2e8f0; min-height: 28px;
+}
+
+/* ───────── Desktop : sidebar toujours visible, pas de bouton menu ───────── */
+@media (min-width: 861px) {
+  .sidebar { transform: translateX(0); box-shadow: var(--shadow-lg); }
+  .main-area, html.sidebar-open .main-area { margin-left: var(--sidebar-w); }
+  .topbar .menu-toggle { display: none !important; }
+  .sidebar-overlay, .sidebar-overlay.open { display: none; }
 }
 
 /* ───────── Adaptation mobile ───────── */
@@ -497,5 +508,30 @@ td .btn-ghost.btn-sm svg { display: block; }
 .confirm-dialog p { color: var(--text-2); line-height: 1.5; margin-bottom: 22px; overflow-wrap: anywhere; }
 .confirm-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .confirm-actions button { min-width: 120px; }
+/* Variantes du message flash (succès / erreur) */
+.flash-dialog.ok { border-top-color: #16a34a; }
+.flash-dialog.ok .confirm-icon { background: #f0fdf4; color: #16a34a; box-shadow: 0 0 0 6px #dcfce7; }
+.flash-dialog.err { border-top-color: #dc2626; }
+.flash-dialog.err .confirm-icon { background: #fef2f2; color: #dc2626; box-shadow: 0 0 0 6px #fee2e2; }
 @keyframes confirm-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes confirm-pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* ───────── Boîte de dialogue d'ajout (formulaire) ───────── */
+.modal-dialog {
+  width: 100%; max-height: calc(100vh - 40px); overflow-y: auto; text-align: left;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); border-top: 4px solid var(--primary);
+  animation: confirm-pop 0.18s ease-out;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.modal-header h3 { margin: 0; font-size: 1.1rem; }
+.modal-body { padding: 20px 22px 22px; }
+.modal-body .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.modal-body .form-actions { margin-top: 20px; padding-top: 16px; justify-content: flex-end; }
+@media (max-width: 600px) {
+  .modal-body .form-grid { grid-template-columns: 1fr; }
+}

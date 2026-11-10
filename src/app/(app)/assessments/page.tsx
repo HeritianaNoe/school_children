@@ -4,14 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { fmtDate } from "@/lib/format";
 import { ASSESSMENT_TYPE_LABEL } from "@/lib/labels";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
 export default async function AssessmentsPage({
   searchParams,
 }: {
-  searchParams: { classe?: string };
+  searchParams: { classe?: string; matiere?: string; page?: string };
 }) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const classeId = searchParams.classe ?? "";
+  const subjectId = searchParams.matiere ?? "";
   const ownCourses = u.role === "TEACHER" ? { teacher: { userId: u.id } } : {};
 
   const classes = await prisma.classe.findMany({
@@ -19,16 +22,44 @@ export default async function AssessmentsPage({
     include: { schoolYear: true },
     orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
   });
-  const list = await prisma.assessment.findMany({
-    where: { course: { ...ownCourses, ...(classeId ? { classeId } : {}) } },
+  // Matières proposées dans le filtre : celles des enseignements visibles par l'utilisateur
+  const subjects = await prisma.subject.findMany({
+    where: { courses: { some: ownCourses } },
+    orderBy: { name: "asc" },
+  });
+  const all = await prisma.assessment.findMany({
+    where: { course: { ...ownCourses, ...(classeId ? { classeId } : {}), ...(subjectId ? { subjectId } : {}) } },
     orderBy: { date: "desc" },
-    take: 100,
     include: {
       course: { include: { classe: { include: { schoolYear: true } }, subject: true } },
       term: { include: { schoolYear: true } },
       _count: { select: { grades: true } },
     },
   });
+
+  const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
+  const classeLabel = classes.find((c) => c.id === classeId);
+  const subjectLabel = subjects.find((x) => x.id === subjectId);
+  const pdf = {
+    title: "Notes et évaluations",
+    subtitle: [
+      `${total} évaluation${total > 1 ? "s" : ""}`,
+      classeLabel ? `Classe : ${classeLabel.name} (${classeLabel.schoolYear.name})` : "",
+      subjectLabel ? `Matière : ${subjectLabel.name}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    headers: ["Date", "Type", "Classe", "Matière", "Période", "Coef.", "Notes saisies"],
+    rows: all.map((a) => [
+      fmtDate(a.date),
+      ASSESSMENT_TYPE_LABEL[a.type] ?? a.type,
+      a.course.classe.name,
+      a.course.subject.name,
+      `${a.term.name} (${a.term.schoolYear.name})`,
+      String(a.coefficient),
+      String(a._count.grades),
+    ]),
+  };
 
   return (
     <>
@@ -55,7 +86,23 @@ export default async function AssessmentsPage({
             ))}
           </select>
         </label>
+        <label>
+          Matière
+          <select name="matiere" defaultValue={subjectId}>
+            <option value="">Toutes les matières</option>
+            {subjects.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <button type="submit">Filtrer</button>
+        {(classeId || subjectId) && (
+          <Link href="/assessments" className="btn-secondary btn">
+            Réinitialiser
+          </Link>
+        )}
       </form>
 
       <div className="table-wrap">
@@ -104,6 +151,7 @@ export default async function AssessmentsPage({
           </tbody>
         </table>
       </div>
+      <TableFooter path="/assessments" params={{ classe: classeId, matiere: subjectId }} page={page} totalPages={totalPages} total={total} pdf={pdf} />
     </>
   );
 }

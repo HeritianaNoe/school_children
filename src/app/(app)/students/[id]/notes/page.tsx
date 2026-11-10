@@ -1,10 +1,10 @@
 import Link from "next/link";
+import PdfLink from "@/components/PdfLink";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { forbidden } from "@/lib/flash";
 import { fmtDate } from "@/lib/format";
-import PrintButton from "@/components/PrintButton";
 
 export default async function StudentNotesPage({ params }: { params: { id: string } }) {
   const u = await requireUser();
@@ -117,10 +117,7 @@ export default async function StudentNotesPage({ params }: { params: { id: strin
         </div>
       )}
       <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 20 }}>
-        <a href={`/api/students/${s.id}/notes`} className="btn">
-          PDF
-        </a>
-        <PrintButton label="Imprimer" />
+        <PdfLink href={`/api/students/${s.id}/notes`} />
       </div>
 
     </>

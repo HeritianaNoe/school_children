@@ -10,7 +10,10 @@ export const MESSAGES = {
     class_deleted: "Classe supprimée.",
     school_year_created: "Année scolaire créée.",
     school_year_updated: "Année scolaire modifiée.",
-    school_year_current: "Année scolaire courante définie.",
+    school_year_created_current:
+      "Année scolaire créée et définie comme courante. Les comptes élèves et enseignants ont été désactivés : ils sont réactivés à la réinscription (élèves) ou à l'affectation d'une matière dans une classe de cette année (enseignants).",
+    school_year_current:
+      "Année scolaire courante définie. Les comptes des élèves et enseignants non rattachés à cette année ont été désactivés ; ils sont réactivés à la réinscription ou à l'affectation d'une matière.",
     school_year_deleted: "Année scolaire supprimée.",
     course_added: "Matière ajoutée à la classe.",
     course_updated: "Enseignement modifié.",
@@ -36,6 +39,7 @@ export const MESSAGES = {
     slot_deleted: "Créneau supprimé.",
     sessions_generated: "Séances de la semaine générées (celles qui existaient déjà ont été conservées).",
     comment_added: "Commentaire ajouté.",
+    contract_renewed: "Contrat de l'année scolaire courante généré / actualisé.",
     payslips_generated: "Fiches de paie générées.",
     payslip_status: "Statut de la fiche de paie mis à jour.",
     notifications_read: "Notifications marquées comme lues.",
@@ -78,6 +82,7 @@ export const MESSAGES = {
     password_mismatch: "La confirmation ne correspond pas au nouveau mot de passe.",
     password_short: "Le nouveau mot de passe doit contenir au moins 8 caractères.",
     teacher_in_use: "Impossible de supprimer cet enseignant : il est encore affecté à des matières ou des séances. Réaffectez-les d'abord dans « Classes ».",
+    no_current_year: "Aucune année scolaire courante n'est définie : définissez-en une dans « Années scolaires ».",
     user_linked: "Impossible de supprimer : ce compte est lié à un élève ou un enseignant.",
     generic: "Une erreur est survenue. Veuillez réessayer.",
   },

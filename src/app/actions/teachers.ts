@@ -10,6 +10,7 @@ import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
 import { done, fail } from "@/lib/flash";
 import { readPhoto } from "@/lib/photo";
 import { applyUserPhoto } from "@/lib/user-photo";
+import { ensureContractsForYear } from "@/lib/contracts";
 
 const createSchema = z.object({
   lastName: z.string().min(1).max(80),
@@ -72,6 +73,10 @@ export async function createTeacher(fd: FormData) {
   }
 
   await applyUserPhoto(userId, photo);
+
+  // Contrat de l'année scolaire courante dès la création (sans effet s'il n'y a pas d'année courante)
+  const current = await prisma.schoolYear.findFirst({ where: { isCurrent: true }, select: { id: true } });
+  if (current) await ensureContractsForYear(prisma, current.id);
 
   revalidatePath("/teachers");
   revalidatePath("/users");

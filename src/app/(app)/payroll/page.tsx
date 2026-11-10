@@ -1,18 +1,33 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
-import { computeTeacherPay } from "@/lib/payroll";
+import { computeAllTeacherPay } from "@/lib/payroll";
 import { generatePayslips, setPayslipStatus } from "@/app/actions/payroll";
 import { fmtAr } from "@/lib/format";
 import { PAYSLIP_STATUS_LABEL } from "@/lib/labels";
 import { forbidden } from "@/lib/flash";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
-export default async function Payroll({ searchParams }: { searchParams: { month?: string } }) {
+export default async function Payroll({ searchParams }: { searchParams: { month?: string; page?: string } }) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const month = searchParams.month ?? new Date().toISOString().slice(0, 7);
 
   if (u.role === "TEACHER") {
     const t = await prisma.teacher.findUniqueOrThrow({ where: { userId: u.id } });
-    const slips = await prisma.payslip.findMany({ where: { teacherId: t.id }, orderBy: { month: "desc" } });
+    const allSlips = await prisma.payslip.findMany({ where: { teacherId: t.id }, orderBy: { month: "desc" } });
+    const { items: slips, page, totalPages, total } = paginate(allSlips, searchParams.page);
+    const pdf = {
+      title: "Ma paie",
+      subtitle: `${total} fiche${total > 1 ? "s" : ""} de paie`,
+      headers: ["Mois", "Heures", "Taux horaire", "Brut", "Statut"],
+      rows: allSlips.map((p) => [
+        p.month,
+        (p.totalMinutes / 60).toFixed(2),
+        fmtAr(Number(p.hourlyRate)),
+        fmtAr(Number(p.gross)),
+        PAYSLIP_STATUS_LABEL[p.status] ?? p.status,
+      ]),
+    };
     return (
       <>
         <h1>Ma paie</h1>
@@ -29,17 +44,34 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
           </tbody>
         </table>
         </div>
+        <TableFooter path="/payroll" page={page} totalPages={totalPages} total={total} pdf={pdf} />
       </>
     );
   }
 
   if (!isStaff(u.role)) forbidden();
-  const teachers = await prisma.teacher.findMany({
-    include: { user: true, payslips: { where: { month } } },
-    orderBy: { user: { name: "asc" } },
-  });
-  const rows = await Promise.all(teachers.map(async (t) => ({ t, calc: await computeTeacherPay(t.id, month), slip: t.payslips[0] })));
-  const total = rows.reduce((s, r) => s + Number(r.calc.gross), 0);
+  const [teachers, pay] = await Promise.all([
+    prisma.teacher.findMany({
+      include: { user: true, payslips: { where: { month } } },
+      orderBy: { user: { name: "asc" } },
+    }),
+    computeAllTeacherPay(month), // 2 requêtes pour tous les enseignants (avant : 2 par enseignant)
+  ]);
+  const allRows = teachers.map((t) => ({ t, calc: pay.get(t.id)!, slip: t.payslips[0] }));
+  const total = allRows.reduce((s, r) => s + Number(r.calc.gross), 0);
+  const { items: rows, page, totalPages, total: count } = paginate(allRows, searchParams.page);
+  const pdf = {
+    title: "Paie des enseignants",
+    subtitle: `Mois : ${month} · Total brut : ${fmtAr(total)}`,
+    headers: ["Enseignant", "Heures", "Taux horaire", "Brut (calculé)", "Fiche de paie"],
+    rows: allRows.map(({ t, calc, slip }) => [
+      t.user.name,
+      (calc.totalMinutes / 60).toFixed(2),
+      fmtAr(Number(t.hourlyRate)),
+      fmtAr(Number(calc.gross)),
+      slip ? PAYSLIP_STATUS_LABEL[slip.status] ?? slip.status : "—",
+    ]),
+  };
 
   return (
     <>
@@ -71,6 +103,7 @@ export default async function Payroll({ searchParams }: { searchParams: { month?
           ))}
         </tbody>
       </table></div>
+      <TableFooter path="/payroll" params={{ month }} page={page} totalPages={totalPages} total={count} pdf={pdf} />
       <p style={{ marginTop: 12 }}><b>Total : {fmtAr(total)}</b></p>
       <form action={generatePayslips}>
         <input type="hidden" name="month" value={month} />

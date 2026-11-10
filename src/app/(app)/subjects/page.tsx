@@ -4,14 +4,28 @@ import Icon from "@/components/Icons";
 import { requireUser, isStaff } from "@/lib/session";
 import { createSubject, deleteSubject } from "@/app/actions/subjects";
 import ConfirmButton from "@/components/ConfirmButton";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
+import AddDialog from "@/components/AddDialog";
 
-export default async function SubjectsPage() {
+export default async function SubjectsPage({ searchParams }: { searchParams: { page?: string } }) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const canManage = isStaff(u.role);
-  const subjects = await prisma.subject.findMany({
+  const allSubjects = await prisma.subject.findMany({
     include: { courses: { include: { classe: true } } },
     orderBy: { name: "asc" },
   });
+
+  const { items: subjects, page, totalPages, total } = paginate(allSubjects, searchParams.page);
+  const pdf = {
+    title: "Matières",
+    subtitle: `${total} matière${total > 1 ? "s" : ""}`,
+    headers: ["Matière", "Classes concernées"],
+    rows: allSubjects.map((s) => [
+      s.name,
+      s.courses.length > 0 ? s.courses.map((c) => c.classe.name).join(", ") : "Aucune",
+    ]),
+  };
 
   return (
     <>
@@ -20,20 +34,23 @@ export default async function SubjectsPage() {
           <h1>Matières</h1>
           <p>{canManage ? "Création et gestion des matières enseignées" : "Matières enseignées dans l'établissement"}</p>
         </div>
+        {canManage && (
+          <AddDialog label="Ajouter une matière" title="Ajouter une matière" maxWidth={460}>
+            <form action={createSubject}>
+              <label>
+                Nom de la matière *
+                <input name="name" required minLength={2} maxLength={80} placeholder="Mathématiques, Français…" />
+              </label>
+              <div className="form-actions">
+                <button type="button" className="btn-secondary" data-dialog-close>
+                  Annuler
+                </button>
+                <button type="submit">Ajouter</button>
+              </div>
+            </form>
+          </AddDialog>
+        )}
       </div>
-
-      {canManage && (
-        <form action={createSubject} className="form-section" style={{ maxWidth: 640 }}>
-          <h3>Ajouter une matière</h3>
-          <div className="form-grid" style={{ gridTemplateColumns: "1fr auto", alignItems: "end" }}>
-            <label>
-              Nom de la matière *
-              <input name="name" required minLength={2} maxLength={80} placeholder="Mathématiques, Français…" />
-            </label>
-            <button type="submit">Ajouter</button>
-          </div>
-        </form>
-      )}
 
       <div className="table-wrap">
         <table>
@@ -90,6 +107,7 @@ export default async function SubjectsPage() {
           </tbody>
         </table>
       </div>
+      <TableFooter path="/subjects" page={page} totalPages={totalPages} total={total} pdf={pdf} />
       {canManage && (
         <p className="muted" style={{ marginTop: 6 }}>
           Une matière ne peut être supprimée que si elle n&apos;est associée à aucune classe. L&apos;association se fait

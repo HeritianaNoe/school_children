@@ -2,15 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { fmtDateFull, fmtTime } from "@/lib/format";
 import { getPresents, parseDay } from "@/lib/presents";
-import PrintCardButton from "@/components/PrintCardButton";
 import { studentImageUrl } from "@/lib/avatar";
 import { ATTENDANCE_LABEL } from "@/lib/labels";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
+import PdfLink from "@/components/PdfLink";
 
 /** Élèves présents, par séance et par jour. Visible par tous les comptes connectés. */
 export default async function PresentsPage({
   searchParams,
 }: {
-  searchParams: { date?: string; classe?: string };
+  searchParams: Record<string, string | undefined>;
 }) {
   const u = await requireUser();
   // Élève : sa propre classe uniquement, avec un filtre par date seulement (pas de filtre de classe)
@@ -112,6 +114,13 @@ export default async function PresentsPage({
               const { present, called, replacedTeacher } = s;
               const hasTable = called && present.length > 0;
               const query = new URLSearchParams({ date: day, session: s.id }).toString();
+              const pageKey = `p_${s.id}`;
+              const sp = paginate(present, searchParams[pageKey]);
+              const keepParams: Record<string, string | undefined> = {
+                date: day,
+                classe: classeId,
+                ...Object.fromEntries(Object.entries(searchParams).filter(([k]) => k.startsWith("p_") && k !== pageKey)),
+              };
               return (
                 <section key={s.id} className="card" style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -149,7 +158,7 @@ export default async function PresentsPage({
                             </tr>
                           </thead>
                           <tbody>
-                            {present.map((a) => (
+                            {sp.items.map((a) => (
                               <tr key={a.id}>
                                 <td>
                                   <div className="row">
@@ -170,6 +179,16 @@ export default async function PresentsPage({
                         </table>
                       </div>
                     )}
+                    {hasTable && sp.totalPages > 1 && (
+                      <TableFooter
+                        path="/presents"
+                        pageParam={pageKey}
+                        params={keepParams}
+                        page={sp.page}
+                        totalPages={sp.totalPages}
+                        total={sp.total}
+                      />
+                    )}
                   </div>
 
                   {(hasTable || replacedTeacher) && (
@@ -185,12 +204,7 @@ export default async function PresentsPage({
                     >
                       <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {hasTable && (
-                          <>
-                            <a href={`/api/presents?${query}`} className="btn">
-                              PDF
-                            </a>
-                            <PrintCardButton label="Imprimer" />
-                          </>
+                          <PdfLink href={`/api/presents?${query}`} />
                         )}
                       </div>
                       {replacedTeacher && (

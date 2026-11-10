@@ -11,8 +11,6 @@ import Icon, { type IconName } from "./Icons";
 type NavLink = { href: string; label: string; icon: IconName; show: boolean };
 type NavSection = { title?: string; links: NavLink[] };
 
-const DESKTOP_MQ = "(min-width: 861px)";
-
 export default function Nav({
   user,
   studentId,
@@ -23,28 +21,16 @@ export default function Nav({
   avatarUrl?: string | null;
 }) {
   const pathname = usePathname();
-  // Desktop : ouvert par défaut ; mobile : fermé
+  // Mobile : menu fermé par défaut (tiroir). Desktop : la sidebar est toujours visible (voir globals.css)
   const [open, setOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
   const staff = hasRole(user.role, ROLES.STAFF);
   const pedagogy = hasRole(user.role, ROLES.PEDAGOGY);
   const direction = hasRole(user.role, ROLES.DIRECTION);
 
+  // Fermer le tiroir à chaque navigation
   useEffect(() => {
-    const mq = window.matchMedia(DESKTOP_MQ);
-    const apply = () => {
-      setIsDesktop(mq.matches);
-      setOpen(mq.matches);
-    };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
-
-  // Sur mobile uniquement : fermer le menu à chaque navigation
-  useEffect(() => {
-    if (!isDesktop) setOpen(false);
-  }, [pathname, isDesktop]);
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const toggle = () => setOpen((v) => !v);
@@ -110,9 +96,7 @@ export default function Nav({
     .filter((l) => pathname === l.href || pathname.startsWith(l.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
-  const close = () => {
-    if (!isDesktop) setOpen(false);
-  };
+  const close = () => setOpen(false);
   const roleLabel = ROLE_LABEL[user.role] ?? user.role;
   const sameAsRole = user.name.trim().toLowerCase() === roleLabel.toLowerCase();
 

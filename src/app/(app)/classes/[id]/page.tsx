@@ -4,13 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { updateClasse, deleteClasse, addCourse, updateCourse, deleteCourse } from "@/app/actions/classes";
 import ConfirmButton from "@/components/ConfirmButton";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
 export default async function ClassePage({
   params,
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { histo?: string };
+  searchParams: { histo?: string; cpage?: string; spage?: string };
 }) {
   await requireUser(["ADMIN", "DIRECTOR"]);
   // Ouverte depuis « Historique des années » : consultation seule, aucune modification possible
@@ -28,10 +30,33 @@ export default async function ClassePage({
   });
   if (!c) notFound();
 
-  const schoolYears = await prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } });
-  const subjects = await prisma.subject.findMany({ orderBy: { name: "asc" } });
-  const teachers = await prisma.teacher.findMany({ include: { user: true }, orderBy: { user: { name: "asc" } } });
+  const [schoolYears, subjects, teachers] = await Promise.all([
+    prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } }),
+    prisma.subject.findMany({ orderBy: { name: "asc" } }),
+    prisma.teacher.findMany({ include: { user: true }, orderBy: { user: { name: "asc" } } }),
+  ]);
   const used = new Set(c.courses.map((x) => x.subjectId));
+  const coursesP = paginate(c.courses, searchParams.cpage);
+  const studentsP = paginate(c.students, searchParams.spage);
+  const keep = { histo: readOnly ? "1" : undefined };
+  const coursesPdf = {
+    title: `Matières enseignées - ${c.name} (${c.schoolYear.name})`,
+    subtitle: `${c.courses.length} matière${c.courses.length > 1 ? "s" : ""}`,
+    headers: ["Matière", "Enseignant", "Coefficient", "Séances", "Évaluations"],
+    rows: c.courses.map((co) => [
+      co.subject.name,
+      co.teacher.user.name,
+      String(co.coefficient),
+      String(co._count.sessions),
+      String(co._count.assessments),
+    ]),
+  };
+  const studentsPdf = {
+    title: `Élèves - ${c.name} (${c.schoolYear.name})`,
+    subtitle: `${c.students.length} élève${c.students.length > 1 ? "s" : ""}`,
+    headers: ["Matricule", "Nom et prénom"],
+    rows: c.students.map((st) => [st.matricule, `${st.lastName.toUpperCase()} ${st.firstName}`]),
+  };
   const available = subjects.filter((s) => !used.has(s.id));
 
   return (
@@ -98,7 +123,7 @@ export default async function ClassePage({
             </tr>
           </thead>
           <tbody>
-            {c.courses.map((co) => (
+            {coursesP.items.map((co) => (
               <tr key={co.id}>
                 <td>
                   <strong>{co.subject.name}</strong>
@@ -161,6 +186,15 @@ export default async function ClassePage({
           </tbody>
         </table>
       </div>
+      <TableFooter
+        path={`/classes/${c.id}`}
+        pageParam="cpage"
+        params={{ ...keep, spage: searchParams.spage }}
+        page={coursesP.page}
+        totalPages={coursesP.totalPages}
+        total={coursesP.total}
+        pdf={coursesPdf}
+      />
       {!readOnly && (
       <p className="muted" style={{ marginTop: 6 }}>
         Une matière ne peut être retirée que si aucune séance ni évaluation n&apos;y est liée.
@@ -227,7 +261,7 @@ export default async function ClassePage({
             </tr>
           </thead>
           <tbody>
-            {c.students.map((s) => (
+            {studentsP.items.map((s) => (
               <tr key={s.id}>
                 <td>
                   <strong>{s.matricule}</strong>
@@ -252,6 +286,15 @@ export default async function ClassePage({
           </tbody>
         </table>
       </div>
+      <TableFooter
+        path={`/classes/${c.id}`}
+        pageParam="spage"
+        params={{ ...keep, cpage: searchParams.cpage }}
+        page={studentsP.page}
+        totalPages={studentsP.totalPages}
+        total={studentsP.total}
+        pdf={studentsPdf}
+      />
 
       {!readOnly && (
       <div className="card danger-zone" style={{ marginTop: 32 }}>

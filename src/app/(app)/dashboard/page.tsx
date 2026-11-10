@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
 import { weekRange } from "@/lib/dates";
 import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
-export default async function Dashboard() {
+export default async function Dashboard({ searchParams }: { searchParams: { page?: string } }) {
   const u = await requireUser();
   const staff = isStaff(u.role);
   const { start, end } = weekRange();
@@ -39,32 +41,44 @@ export default async function Dashboard() {
     }),
   ]);
 
+  const [nStudents, nClasses, nSubjects, nTeachers, nSessions, nAbsences, nAssessments] = staff
+    ? await Promise.all([
+        prisma.student.count(),
+        prisma.classe.count(),
+        prisma.subject.count(),
+        prisma.user.count({ where: { role: "TEACHER" } }),
+        prisma.session.count({ where: { startsAt: { gte: start, lt: end } } }),
+        prisma.studentAttendance.count({
+          where: { status: "ABSENT", session: { startsAt: { gte: start, lt: end } } },
+        }),
+        prisma.assessment.count(),
+      ])
+    : [0, 0, 0, 0, 0, 0, 0];
+
   const stats = staff
     ? [
-        { label: "Élèves inscrits", icon: "graduation" as const, value: await prisma.student.count(), href: "/students" },
-        { label: "Classes", icon: "school" as const, value: await prisma.classe.count(), href: "/classes" },
-        { label: "Matières", icon: "book" as const, value: await prisma.subject.count(), href: "/subjects" },
+        { label: "Élèves inscrits", icon: "graduation" as const, value: nStudents, href: "/students" },
+        { label: "Classes", icon: "school" as const, value: nClasses, href: "/classes" },
+        { label: "Matières", icon: "book" as const, value: nSubjects, href: "/subjects" },
         {
           label: "Enseignants",
           icon: "presentation" as const,
-          value: await prisma.user.count({ where: { role: "TEACHER" } }),
+          value: nTeachers,
           href: "/teachers",
         },
         {
           label: "Séances de la semaine",
           icon: "calendarCheck" as const,
-          value: await prisma.session.count({ where: { startsAt: { gte: start, lt: end } } }),
+          value: nSessions,
           href: "/sessions",
         },
         {
           label: "Absences d'élèves (semaine)",
           icon: "alert" as const,
-          value: await prisma.studentAttendance.count({
-            where: { status: "ABSENT", session: { startsAt: { gte: start, lt: end } } },
-          }),
+          value: nAbsences,
           href: "/sessions",
         },
-        { label: "Évaluations", icon: "clipboard" as const, value: await prisma.assessment.count(), href: "/assessments" },
+        { label: "Évaluations", icon: "clipboard" as const, value: nAssessments, href: "/assessments" },
         { label: "Réclamations en attente", icon: "alert" as const, value: reclTotal, href: "/reclamations" },
       ]
     : null;
@@ -75,6 +89,8 @@ export default async function Dashboard() {
         orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
       })
     : [];
+
+  const perClassPage = paginate(perClass, searchParams.page);
 
   return (
     <>
@@ -224,7 +240,7 @@ export default async function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {perClass.map((c) => (
+                {perClassPage.items.map((c) => (
                   <tr key={c.id}>
                     <td>
                       <strong>{c.name}</strong>
@@ -241,6 +257,18 @@ export default async function Dashboard() {
               </tbody>
             </table>
           </div>
+          <TableFooter
+            path="/dashboard"
+            page={perClassPage.page}
+            totalPages={perClassPage.totalPages}
+            total={perClassPage.total}
+            pdf={{
+              title: "Effectif par classe",
+              subtitle: `${perClass.length} classe${perClass.length > 1 ? "s" : ""}`,
+              headers: ["Classe", "Année scolaire", "Élèves"],
+              rows: perClass.map((c) => [c.name, c.schoolYear.name, String(c._count.students)]),
+            }}
+          />
         </>
       )}
 

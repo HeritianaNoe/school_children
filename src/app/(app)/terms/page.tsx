@@ -5,11 +5,16 @@ import { requireUser } from "@/lib/session";
 import { createTerm, deleteTerm } from "@/app/actions/terms";
 import { fmtDateFull } from "@/lib/format";
 import ConfirmButton from "@/components/ConfirmButton";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
+import AddDialog from "@/components/AddDialog";
 
-export default async function TermsPage() {
-  await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
+export default async function TermsPage({ searchParams }: { searchParams: { page?: string } }) {
+  const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
+  // La création est réservée à l'administrateur et au directeur (comme l'action serveur)
+  const canCreate = me.role === "ADMIN" || me.role === "DIRECTOR";
 
-  const [terms, schoolYears] = await Promise.all([
+  const [allTerms, schoolYears] = await Promise.all([
     prisma.term.findMany({
       include: {
         schoolYear: true,
@@ -22,6 +27,20 @@ export default async function TermsPage() {
     }),
   ]);
 
+  const { items: terms, page, totalPages, total } = paginate(allTerms, searchParams.page);
+  const pdf = {
+    title: "Périodes",
+    subtitle: `${total} période${total > 1 ? "s" : ""}`,
+    headers: ["Période", "Année scolaire", "Début", "Fin", "Évaluations"],
+    rows: allTerms.map((t) => [
+      t.name,
+      t.schoolYear.name + (t.schoolYear.isCurrent ? " (courante)" : ""),
+      fmtDateFull(t.startDate),
+      fmtDateFull(t.endDate),
+      String(t._count.assessments),
+    ]),
+  };
+
   const currentYearId = schoolYears.find((y) => y.isCurrent)?.id ?? schoolYears[0]?.id ?? "";
 
   return (
@@ -31,48 +50,51 @@ export default async function TermsPage() {
           <h1>Périodes</h1>
           <p>Trimestres ou semestres auxquels sont rattachées les évaluations</p>
         </div>
-      </div>
-
-      <form action={createTerm} className="form-section" style={{ maxWidth: 900 }}>
-        <h3>Ajouter une période</h3>
-        <div
-          className="form-grid"
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr)) auto", alignItems: "end" }}
-        >
-          <label>
-            Nom *
-            <input name="name" required maxLength={60} placeholder="Trimestre 1" />
-          </label>
-          <label>
-            Année scolaire *
-            <select name="schoolYearId" required defaultValue={currentYearId}>
-              {schoolYears.length === 0 && <option value="">Aucune année</option>}
-              {schoolYears.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.name}
-                  {y.isCurrent ? " (courante)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Début *
-            <input name="startDate" type="date" required />
-          </label>
-          <label>
-            Fin *
-            <input name="endDate" type="date" required />
-          </label>
-          <button type="submit" disabled={schoolYears.length === 0}>
-            Ajouter
-          </button>
-        </div>
-        {schoolYears.length === 0 && (
-          <p className="muted" style={{ marginTop: 10, fontSize: "0.9rem" }}>
-            Créez d&apos;abord une année scolaire dans « Années scolaires » avant d&apos;ajouter une période.
-          </p>
+        {canCreate && (
+          <AddDialog label="Ajouter une période" title="Ajouter une période" maxWidth={600}>
+            {schoolYears.length === 0 ? (
+              <p className="muted">
+                Créez d&apos;abord une année scolaire dans <Link href="/school-years">« Années scolaires »</Link> avant
+                d&apos;ajouter une période.
+              </p>
+            ) : (
+              <form action={createTerm}>
+                <div className="form-grid">
+                  <label>
+                    Nom *
+                    <input name="name" required maxLength={60} placeholder="Trimestre 1" />
+                  </label>
+                  <label>
+                    Année scolaire *
+                    <select name="schoolYearId" required defaultValue={currentYearId}>
+                      {schoolYears.map((y) => (
+                        <option key={y.id} value={y.id}>
+                          {y.name}
+                          {y.isCurrent ? " (courante)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Début *
+                    <input name="startDate" type="date" required />
+                  </label>
+                  <label>
+                    Fin *
+                    <input name="endDate" type="date" required />
+                  </label>
+                </div>
+                <div className="form-actions">
+                  <button type="button" className="btn-secondary" data-dialog-close>
+                    Annuler
+                  </button>
+                  <button type="submit">Ajouter</button>
+                </div>
+              </form>
+            )}
+          </AddDialog>
         )}
-      </form>
+      </div>
 
       <div className="table-wrap">
         <table>
@@ -135,6 +157,7 @@ export default async function TermsPage() {
           </tbody>
         </table>
       </div>
+      <TableFooter path="/terms" page={page} totalPages={totalPages} total={total} pdf={pdf} />
     </>
   );
 }

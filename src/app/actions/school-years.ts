@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, fail } from "@/lib/flash";
+import { syncStudentAccountsForYear, syncTeacherAccountsForYear } from "@/lib/enrollment";
+import { ensureContractsForYear } from "@/lib/contracts";
 
 const STAFF = ["ADMIN", "DIRECTOR"] as const;
 const PAGE = "/school-years";
@@ -56,7 +58,7 @@ export async function createSchoolYear(fd: FormData) {
     await prisma.$transaction(async (tx) => {
       // L'index unique partiel n'autorise qu'une année courante : on retire l'ancienne d'abord.
       if (makeCurrent) await tx.schoolYear.updateMany({ where: { isCurrent: true }, data: { isCurrent: false } });
-      await tx.schoolYear.create({
+      const created = await tx.schoolYear.create({
         data: {
           name: d.name,
           startDate: start,
@@ -65,6 +67,13 @@ export async function createSchoolYear(fd: FormData) {
           isCurrent: makeCurrent,
         },
       });
+      // Nouvelle année courante : les comptes élèves des autres années sont désactivés.
+      // Ils redeviennent actifs à la réinscription dans une classe de cette année.
+      if (makeCurrent) {
+        await syncStudentAccountsForYear(tx, created.id);
+        await syncTeacherAccountsForYear(tx, created.id);
+        await ensureContractsForYear(tx, created.id); // contrats renouvelés pour la nouvelle année
+      }
     });
   } catch (e) {
     if (isUnique(e)) fail(PAGE, "school_year_exists");
@@ -72,7 +81,13 @@ export async function createSchoolYear(fd: FormData) {
   }
   revalidatePath(PAGE);
   revalidatePath("/classes");
-  done(PAGE, "school_year_created");
+  if (makeCurrent) {
+    revalidatePath("/students");
+    revalidatePath("/teachers");
+    revalidatePath("/users");
+    revalidatePath("/dashboard");
+  }
+  done(PAGE, makeCurrent ? "school_year_created_current" : "school_year_created");
 }
 
 export async function updateSchoolYear(fd: FormData) {
@@ -117,12 +132,23 @@ export async function setCurrentSchoolYear(fd: FormData) {
   if (!sy) fail(PAGE, "not_found");
   if (!canBeCurrent(sy.status)) fail(PAGE, "school_year_not_open");
 
-  await prisma.$transaction([
-    prisma.schoolYear.updateMany({ where: { isCurrent: true, NOT: { id } }, data: { isCurrent: false } }),
-    prisma.schoolYear.update({ where: { id }, data: { isCurrent: true, status: "ACTIVE" } }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.schoolYear.updateMany({ where: { isCurrent: true, NOT: { id } }, data: { isCurrent: false } });
+    await tx.schoolYear.update({ where: { id }, data: { isCurrent: true, status: "ACTIVE" } });
+    // Changement réel d'année courante seulement : on ne touche pas aux comptes si elle l'était déjà
+    // (sinon on écraserait les activations / désactivations manuelles faites depuis « Utilisateurs »).
+    if (!sy.isCurrent) {
+      await syncStudentAccountsForYear(tx, id);
+      await syncTeacherAccountsForYear(tx, id);
+      await ensureContractsForYear(tx, id);
+    }
+  });
   revalidatePath(PAGE);
   revalidatePath("/classes");
+  revalidatePath("/students");
+  revalidatePath("/teachers");
+  revalidatePath("/users");
+  revalidatePath("/dashboard");
   done(PAGE, "school_year_current");
 }
 

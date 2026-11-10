@@ -1,24 +1,72 @@
 import Link from "next/link";
 import Icon from "@/components/Icons";
 import { prisma } from "@/lib/prisma";
-import { requireUser, isStaff } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { SESSION_STATUS_LABEL } from "@/lib/labels";
 import { deleteSession } from "@/app/actions/sessions";
 import ConfirmButton from "@/components/ConfirmButton";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
-export default async function SessionsPage() {
+export default async function SessionsPage({
+  searchParams,
+}: {
+  searchParams: { classe?: string; teacher?: string; page?: string };
+}) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const canDelete = u.role === "ADMIN" || u.role === "DIRECTOR";
-  const sessions = await prisma.session.findMany({
-    where: u.role === "TEACHER" ? { teacher: { userId: u.id } } : {},
-    orderBy: { startsAt: "desc" },
-    take: 60,
-    include: {
-      course: { include: { classe: true, subject: true } },
-      teacher: { include: { user: true } },
-    },
-  });
+  const isTeacher = u.role === "TEACHER";
+  const classeId = searchParams.classe ?? "";
+  const teacherId = isTeacher ? "" : searchParams.teacher ?? "";
+
+  const where = {
+    ...(isTeacher ? { teacher: { userId: u.id } } : {}),
+    ...(classeId ? { course: { classeId } } : {}),
+    ...(teacherId ? { teacherId } : {}),
+  };
+
+  const [classes, teachers, all] = await Promise.all([
+    prisma.classe.findMany({
+      include: { schoolYear: true },
+      orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
+    }),
+    isTeacher
+      ? Promise.resolve([])
+      : prisma.teacher.findMany({ include: { user: true }, orderBy: { user: { name: "asc" } } }),
+    prisma.session.findMany({
+      where,
+      orderBy: { startsAt: "desc" },
+      include: {
+        course: { include: { classe: true, subject: true } },
+        teacher: { include: { user: true } },
+      },
+    }),
+  ]);
+  const { items: sessions, page, totalPages, total } = paginate(all, searchParams.page);
+
+  const hasFilter = !!(classeId || teacherId);
+  const classeName = classes.find((c) => c.id === classeId)?.name;
+  const teacherName = teachers.find((t) => t.id === teacherId)?.user.name;
+  const pdf = {
+    title: "Séances et présences",
+    subtitle: [
+      `${total} séance${total > 1 ? "s" : ""}`,
+      classeName ? `Classe : ${classeName}` : "",
+      teacherName ? `Enseignant : ${teacherName}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    headers: ["Date", "Horaires", "Classe", "Matière", "Enseignant", "Statut"],
+    rows: all.map((s) => [
+      fmtDate(s.startsAt),
+      `${fmtTime(s.startsAt)} – ${fmtTime(s.endsAt)}`,
+      s.course.classe.name,
+      s.course.subject.name,
+      s.teacher.user.name,
+      SESSION_STATUS_LABEL[s.status] ?? s.status,
+    ]),
+  };
 
   return (
     <>
@@ -34,14 +82,41 @@ export default async function SessionsPage() {
             <Icon name="calendar" size={16} />
             Emploi du temps
           </Link>
-          {isStaff(u.role) && (
-            <Link href="/sessions/new" className="btn">
-              <Icon name="plus" size={16} />
-              Nouvelle séance
-            </Link>
-          )}
         </div>
       </div>
+
+      <form method="get" className="filters">
+        <label>
+          Classe
+          <select name="classe" defaultValue={classeId}>
+            <option value="">Toutes les classes</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.schoolYear.name})
+              </option>
+            ))}
+          </select>
+        </label>
+        {!isTeacher && (
+          <label>
+            Enseignant
+            <select name="teacher" defaultValue={teacherId}>
+              <option value="">Tous les enseignants</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.user.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button type="submit">Filtrer</button>
+        {hasFilter && (
+          <Link href="/sessions" className="btn-secondary btn">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
 
       <div className="table-wrap">
         <table>
@@ -93,13 +168,22 @@ export default async function SessionsPage() {
             {sessions.length === 0 && (
               <tr>
                 <td colSpan={7} className="muted" style={{ textAlign: "center", padding: 28 }}>
-                  Aucune séance.
+                  {hasFilter ? "Aucune séance ne correspond à ce filtre." : "Aucune séance."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <TableFooter
+        path="/sessions"
+        params={{ classe: classeId, teacher: teacherId }}
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        pdf={pdf}
+      />
     </>
   );
 }

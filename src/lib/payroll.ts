@@ -36,6 +36,40 @@ export async function computeTeacherPay(teacherId: string, month: string) {
   return { totalMinutes, hourlyRate: teacher.hourlyRate, gross };
 }
 
+/**
+ * Paie de TOUS les enseignants pour un mois, en 2 requêtes (au lieu de 2 par enseignant).
+ * Retourne une Map teacherId → { totalMinutes, hourlyRate, gross }.
+ */
+export async function computeAllTeacherPay(month: string) {
+  const { start, end } = monthRange(month);
+  const [teachers, sessions] = await Promise.all([
+    prisma.teacher.findMany({ select: { id: true, hourlyRate: true } }),
+    prisma.session.findMany({
+      where: { status: "DONE", startsAt: { gte: start, lt: end } },
+      select: {
+        teacherId: true,
+        startsAt: true,
+        endsAt: true,
+        teacherAttendance: { select: { status: true, arrivedAt: true, leftAt: true } },
+      },
+    }),
+  ]);
+
+  const minutes = new Map<string, number>();
+  for (const s of sessions) {
+    const m = effectiveMinutes({ startsAt: s.startsAt, endsAt: s.endsAt, att: s.teacherAttendance });
+    minutes.set(s.teacherId, (minutes.get(s.teacherId) ?? 0) + m);
+  }
+
+  const out = new Map<string, { totalMinutes: number; hourlyRate: Prisma.Decimal; gross: Prisma.Decimal }>();
+  for (const t of teachers) {
+    const totalMinutes = minutes.get(t.id) ?? 0;
+    const gross = new Prisma.Decimal(t.hourlyRate).mul(totalMinutes).div(60).toDecimalPlaces(0);
+    out.set(t.id, { totalMinutes, hourlyRate: t.hourlyRate, gross });
+  }
+  return out;
+}
+
 export async function generatePayslip(teacherId: string, month: string) {
   const r = await computeTeacherPay(teacherId, month);
   return prisma.payslip.upsert({

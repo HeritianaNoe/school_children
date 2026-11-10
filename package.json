@@ -10,7 +10,8 @@
     "db:reset": "prisma db push --force-reset && tsx scripts/db-constraints.ts && prisma db seed",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "alerts": "tsx scripts/run-alerts.ts"
+    "alerts": "tsx scripts/run-alerts.ts",
+    "students:sync": "tsx scripts/sync-student-accounts.ts"
   },
   "prisma": { "seed": "tsx prisma/seed.ts" },
   "dependencies": {

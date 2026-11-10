@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, fail } from "@/lib/flash";
+import { activateTeacherForClasse } from "@/lib/enrollment";
 
 const STAFF = ["ADMIN", "DIRECTOR"] as const;
 
@@ -124,7 +125,11 @@ export async function addCourse(fd: FormData) {
   });
   if (!p.success) fail(back, "validation");
   try {
-    await prisma.course.create({ data: { classeId, ...p.data } });
+    const created = await prisma.course.create({
+      data: { classeId, ...p.data },
+      select: { teacherId: true, classe: { select: { schoolYearId: true } } },
+    });
+    await activateTeacherForClasse(prisma, created.teacherId, created.classe.schoolYearId);
   } catch (e) {
     if (isUnique(e)) fail(back, "course_exists");
     throw e;
@@ -136,7 +141,10 @@ export async function addCourse(fd: FormData) {
 export async function updateCourse(fd: FormData) {
   await requireUser([...STAFF]);
   const id = String(fd.get("id") ?? "");
-  const course = await prisma.course.findUnique({ where: { id } });
+  const course = await prisma.course.findUnique({
+    where: { id },
+    include: { classe: { select: { schoolYearId: true } } },
+  });
   if (!course) fail("/classes", "not_found");
   const back = `/classes/${course.classeId}`;
   const p = courseSchema
@@ -144,6 +152,7 @@ export async function updateCourse(fd: FormData) {
     .safeParse({ teacherId: fd.get("teacherId"), coefficient: fd.get("coefficient") });
   if (!p.success) fail(back, "validation");
   await prisma.course.update({ where: { id }, data: p.data });
+  await activateTeacherForClasse(prisma, p.data.teacherId, course.classe.schoolYearId);
   revalidatePath(back);
   done(back, "course_updated");
 }

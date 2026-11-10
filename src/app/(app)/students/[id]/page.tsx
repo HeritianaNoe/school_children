@@ -3,14 +3,12 @@ import { studentImageUrl } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { studentAverage } from "@/lib/grades";
-import { addComment } from "@/app/actions/comments";
 import { deleteStudent } from "@/app/actions/students";
-import { fmtDate, fmtDateFull } from "@/lib/format";
+import { fmtDateFull } from "@/lib/format";
 import { SEX_LABEL, NOMENCLATURE_LABEL } from "@/lib/labels";
 import { forbidden } from "@/lib/flash";
 import ConfirmButton from "@/components/ConfirmButton";
-import PrintButton from "@/components/PrintButton";
+import PdfLink from "@/components/PdfLink";
 
 export default async function StudentPage({
   params,
@@ -30,32 +28,6 @@ export default async function StudentPage({
   const canManage = u.role === "ADMIN" || u.role === "DIRECTOR";
   const canFiche = u.role === "ADMIN" || u.role === "DIRECTOR" || u.role === "TEACHER"; // fiche d'inscription (l'élève voit la sienne)
 
-  const since = new Date(Date.now() - 30 * 86400_000);
-  const att = await prisma.studentAttendance.groupBy({
-    by: ["status"],
-    where: { studentId: s.id, session: { startsAt: { gte: since } } },
-    _count: { _all: true },
-  });
-  const count = (k: string) => att.find((a) => a.status === k)?._count._all ?? 0;
-
-  const terms = await prisma.term.findMany({ orderBy: { startDate: "asc" } });
-  const averages = await Promise.all(
-    terms.map(async (t) => ({ t, avg: await studentAverage(s.id, t.id) }))
-  );
-  const grades = await prisma.grade.findMany({
-    where: { studentId: s.id },
-    orderBy: { assessment: { date: "desc" } },
-    take: 20,
-    include: { assessment: { include: { course: { include: { subject: true } } } } },
-  });
-  const comments = staffView
-    ? await prisma.comment.findMany({
-        where: { studentId: s.id },
-        orderBy: { createdAt: "desc" },
-        include: { author: true },
-      })
-    : [];
-
   const sexLabel = s.sex ? SEX_LABEL[s.sex] : "—";
 
   return (
@@ -63,7 +35,7 @@ export default async function StudentPage({
       {searchParams.created && (
         <div className="card" style={{ background: "#d1fae5", borderColor: "#6ee7b7", marginBottom: 16 }}>
           Élève inscrit avec succès. Matricule attribué : <strong>{s.matricule}</strong>.{" "}
-          {canFiche && <Link href={`/students/${s.id}/fiche`}>Imprimer la fiche d&apos;inscription →</Link>}
+          {canFiche && <Link href={`/students/${s.id}/fiche`}>Fiche d&apos;inscription (PDF) →</Link>}
         </div>
       )}
 
@@ -86,6 +58,9 @@ export default async function StudentPage({
               Fiche d&apos;inscription
             </Link>
           )}
+          <Link href={`/students/${s.id}/dossier`} className="btn-secondary btn">
+            Dossier d&apos;élève
+          </Link>
           <Link href={`/students/${s.id}/notes`} className="btn-secondary btn">
             Notes par matière
           </Link>
@@ -143,104 +118,10 @@ export default async function StudentPage({
         </div>
       </div>
 
-      <h2>Présence (30 derniers jours)</h2>
-      <div className="grid">
-        <div className="stat-card">
-          <div className="label">Présences</div>
-          <div className="value">{count("PRESENT")}</div>
-        </div>
-        <div className="stat-card">
-          <div className="label">Retards</div>
-          <div className="value">{count("LATE")}</div>
-        </div>
-        <div className="stat-card">
-          <div className="label">Absences</div>
-          <div className="value">{count("ABSENT")}</div>
-        </div>
-        <div className="stat-card">
-          <div className="label">Absences justifiées</div>
-          <div className="value">{count("EXCUSED")}</div>
-        </div>
-      </div>
-
-      <h2>Moyennes</h2>
-      <div className="grid">
-        {averages.map(({ t, avg }) => (
-          <div className="stat-card" key={t.id}>
-            <div className="label">{t.name}</div>
-            <div className="value">
-              {avg ?? "—"}
-              {avg != null && <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>/20</span>}
-            </div>
-          </div>
-        ))}
-        {averages.length === 0 && <p className="muted">Aucune période définie.</p>}
-      </div>
-
-      <h2>Notes récentes</h2>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Matière</th>
-              <th>Évaluation</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grades.map((g) => (
-              <tr key={g.id}>
-                <td>{fmtDate(g.assessment.date)}</td>
-                <td>{g.assessment.course.subject.name}</td>
-                <td>{g.assessment.title}</td>
-                <td>
-                  {g.score ?? "Abs."} / {g.assessment.maxScore}
-                </td>
-              </tr>
-            ))}
-            {grades.length === 0 && (
-              <tr>
-                <td colSpan={4} className="muted" style={{ textAlign: "center", padding: 24 }}>
-                  Aucune note enregistrée.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {staffView && (
-        <>
-          <h2>Commentaires</h2>
-          <form action={addComment} className="form-section">
-            <input type="hidden" name="studentId" value={s.id} />
-            <label>
-              Nouveau commentaire
-              <textarea name="body" rows={3} required placeholder="Saisir un commentaire…" />
-            </label>
-            <div className="form-actions" style={{ border: 0, paddingTop: 0, marginTop: 12 }}>
-              <button type="submit">Ajouter</button>
-            </div>
-          </form>
-          {comments.map((c) => (
-            <div className="card" key={c.id}>
-              <div className="muted">
-                {c.author.name} · {c.createdAt.toLocaleString("fr-FR")}
-              </div>
-              <div style={{ marginTop: 6 }}>{c.body}</div>
-            </div>
-          ))}
-        </>
-      )}
-
       <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 24 }}>
         {(canFiche || !staffView) && (
-          <a href={`/api/students/${s.id}/fiche`} className="btn">
-            PDF
-          </a>
+          <PdfLink href={`/api/students/${s.id}/fiche`} title="Télécharger la fiche d'inscription en PDF" />
         )}
-        <PrintButton label="Imprimer" />
       </div>
 
       {canManage && (

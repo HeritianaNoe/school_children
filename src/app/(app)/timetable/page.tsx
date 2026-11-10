@@ -6,8 +6,8 @@ import { getTimetable } from "@/lib/timetable-data";
 import { fmtDateFull } from "@/lib/format";
 import { createSlot, deleteSlot, generateSessions } from "@/app/actions/timetable";
 import Icon from "@/components/Icons";
+import PdfLink from "@/components/PdfLink";
 import ConfirmButton from "@/components/ConfirmButton";
-import PrintButton from "@/components/PrintButton";
 import SlotForm from "@/components/SlotForm";
 
 export default async function TimetablePage({ searchParams }: { searchParams: { vue?: string; semaine?: string } }) {
@@ -197,10 +197,7 @@ export default async function TimetablePage({ searchParams }: { searchParams: { 
       )}
 
       <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 20 }}>
-        <a href={`/api/timetable?vue=${encodeURIComponent(vue)}`} className="btn">
-          PDF
-        </a>
-        <PrintButton label="Imprimer" />
+        <PdfLink href={`/api/timetable?vue=${encodeURIComponent(vue)}`} />
       </div>
     </>
   );

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Icon from "@/components/Icons";
+import PdfLink from "@/components/PdfLink";
 import { requireUser } from "@/lib/session";
 import { deleteAnnouncement } from "@/app/actions/announcements";
 import ConfirmButton from "@/components/ConfirmButton";
-import PrintCardButton from "@/components/PrintCardButton";
 
 export default async function AnnouncementsPage() {
   const u = await requireUser();
@@ -60,7 +60,7 @@ export default async function AnnouncementsPage() {
               <div style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>{a.body}</div>
             </div>
 
-            {/* Actions : PDF · Imprimer · Supprimer */}
+            {/* Actions : PDF · Supprimer */}
             <div
               className="no-print"
               style={{
@@ -73,15 +73,7 @@ export default async function AnnouncementsPage() {
                 marginTop: 4,
               }}
             >
-              <a
-                href={`/api/announcements/${a.id}/pdf`}
-                className="btn btn-sm"
-                title="Télécharger en PDF"
-              >
-                <Icon name="fileText" size={15} />
-                PDF
-              </a>
-              <PrintCardButton label="Imprimer" className="btn btn-sm" />
+              <PdfLink href={`/api/announcements/${a.id}/pdf`} small />
               {staff && (
                 <form action={deleteAnnouncement.bind(null, a.id)} style={{ marginLeft: "auto" }}>
                   <ConfirmButton

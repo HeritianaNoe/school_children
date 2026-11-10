@@ -22,3 +22,36 @@ export async function studentAverage(studentId: string, termId: string) {
   }
   return d ? +(n / d).toFixed(2) : null;
 }
+
+type GradeForAverage = {
+  score: number | null;
+  assessment: { termId: string; courseId: string; maxScore: number; coefficient: number; course: { coefficient: number } };
+};
+
+/**
+ * Même calcul que studentAverage, mais à partir de notes déjà chargées :
+ * une seule lecture en base pour toutes les périodes (au lieu d'une requête par période).
+ */
+export function averagesByTerm(grades: GradeForAverage[], termIds: string[]) {
+  const per = new Map<string, Map<string, { num: number; den: number; coef: number }>>();
+  for (const g of grades) {
+    if (g.score == null) continue;
+    const a = g.assessment;
+    const byCourse = per.get(a.termId) ?? new Map();
+    const v = byCourse.get(a.courseId) ?? { num: 0, den: 0, coef: a.course.coefficient };
+    v.num += (g.score / a.maxScore) * 20 * a.coefficient;
+    v.den += a.coefficient;
+    byCourse.set(a.courseId, v);
+    per.set(a.termId, byCourse);
+  }
+  return new Map(
+    termIds.map((id) => {
+      let n = 0, d = 0;
+      for (const v of per.get(id)?.values() ?? []) {
+        n += (v.num / v.den) * v.coef;
+        d += v.coef;
+      }
+      return [id, d ? +(n / d).toFixed(2) : null] as const;
+    })
+  );
+}

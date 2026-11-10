@@ -6,8 +6,8 @@ import { ROLE_LABEL } from "@/lib/labels";
 import { deleteUser, toggleUserActive } from "@/app/actions/users";
 import ConfirmButton from "@/components/ConfirmButton";
 import { userImageUrl } from "@/lib/avatar";
-
-const PAGE_SIZE = 15;
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
 export default async function UsersPage({
   searchParams,
@@ -17,7 +17,6 @@ export default async function UsersPage({
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   const q = (searchParams.q ?? "").trim();
   const role = searchParams.role ?? "";
-  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
 
   const where = {
     ...(role ? { role: role as any } : {}),
@@ -31,28 +30,33 @@ export default async function UsersPage({
       : {}),
   };
 
-  const [total, list] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      orderBy: [{ role: "asc" }, { name: "asc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        student: { select: { id: true, matricule: true, sex: true, photoUrl: true } },
-        teacher: { select: { id: true } },
-      },
-    }),
-  ]);
+  const all = await prisma.user.findMany({
+    where,
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+    include: {
+      student: { select: { id: true, matricule: true, sex: true, photoUrl: true } },
+      teacher: { select: { id: true } },
+    },
+  });
+  const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const qs = (p: number) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (role) params.set("role", role);
-    if (p > 1) params.set("page", String(p));
-    const s = params.toString();
-    return s ? `?${s}` : "";
+  const pdf = {
+    title: "Utilisateurs",
+    subtitle: [
+      `${total} compte${total > 1 ? "s" : ""}`,
+      role ? `Rôle : ${(ROLE_LABEL as Record<string, string>)[role] ?? role}` : "",
+      q ? `Recherche : ${q}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    headers: ["Nom", "E-mail", "Rôle", "Statut", "Liens"],
+    rows: all.map((u) => [
+      u.name,
+      u.email,
+      ROLE_LABEL[u.role] ?? u.role,
+      u.active ? "Actif" : "Inactif",
+      u.student ? `Élève ${u.student.matricule}` : u.teacher ? "Enseignant" : "—",
+    ]),
   };
 
   return (
@@ -180,31 +184,7 @@ export default async function UsersPage({
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="pagination">
-          {page > 1 ? (
-            <Link href={`/users${qs(page - 1)}`} className="btn-secondary btn btn-sm">
-              ← Précédent
-            </Link>
-          ) : (
-            <span className="btn-secondary btn btn-sm" style={{ opacity: 0.4, pointerEvents: "none" }}>
-              ← Précédent
-            </span>
-          )}
-          <span className="muted" style={{ fontSize: "0.9rem" }}>
-            Page {page} / {totalPages}
-          </span>
-          {page < totalPages ? (
-            <Link href={`/users${qs(page + 1)}`} className="btn-secondary btn btn-sm">
-              Suivant →
-            </Link>
-          ) : (
-            <span className="btn-secondary btn btn-sm" style={{ opacity: 0.4, pointerEvents: "none" }}>
-              Suivant →
-            </span>
-          )}
-        </div>
-      )}
+      <TableFooter path="/users" params={{ q, role }} page={page} totalPages={totalPages} total={total} pdf={pdf} />
     </>
   );
 }

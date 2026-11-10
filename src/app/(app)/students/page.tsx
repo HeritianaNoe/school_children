@@ -5,42 +5,80 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, isStaff } from "@/lib/session";
 import { SEX_LABEL, NOMENCLATURE_LABEL } from "@/lib/labels";
 import { fmtDateFull } from "@/lib/format";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
 
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; classe?: string };
+  searchParams: { q?: string; classe?: string; page?: string };
 }) {
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const q = (searchParams.q ?? "").trim();
-  const classeId = searchParams.classe ?? "";
 
-  const classes = await prisma.classe.findMany({ include: { schoolYear: true }, orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }] });
-  const list = await prisma.student.findMany({
-    where: {
-      ...(classeId ? { classeId } : {}),
-      ...(q
-        ? {
-            OR: [
-              { lastName: { contains: q, mode: "insensitive" } },
-              { firstName: { contains: q, mode: "insensitive" } },
-              { matricule: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    include: { classe: true },
+  // Seule l'année scolaire courante est affichée (élèves et filtre par classe).
+  // Sans année courante définie, on retombe sur toutes les années plutôt que d'afficher une liste vide.
+  const currentYear = await prisma.schoolYear.findFirst({ where: { isCurrent: true } });
+  const yearFilter = currentYear ? { schoolYearId: currentYear.id } : {};
+
+  const classes = await prisma.classe.findMany({
+    where: yearFilter,
+    include: { schoolYear: true },
+    orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
+  });
+  // Un ?classe=… d'une année passée (ancien lien, favori) est ignoré
+  const classeId = classes.some((c) => c.id === searchParams.classe) ? (searchParams.classe as string) : "";
+
+  const where = {
+    classe: yearFilter,
+    ...(classeId ? { classeId } : {}),
+    ...(q
+      ? {
+          OR: [
+            { lastName: { contains: q, mode: "insensitive" as const } },
+            { firstName: { contains: q, mode: "insensitive" as const } },
+            { matricule: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const all = await prisma.student.findMany({
+    where,
+    include: { classe: true, user: { select: { active: true } } },
     orderBy: [{ classe: { name: "asc" } }, { lastName: "asc" }, { firstName: "asc" }],
   });
+  const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
+
+  const classeLabel = classes.find((c) => c.id === classeId);
+  const pdf = {
+    title: "Élèves",
+    subtitle: [
+      `${total} élève${total > 1 ? "s" : ""}`,
+      currentYear ? `Année : ${currentYear.name}` : "",
+      classeLabel ? `Classe : ${classeLabel.name} (${classeLabel.schoolYear.name})` : "",
+      q ? `Recherche : ${q}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    headers: ["Nom et prénom", "Sexe", "Classe", "Nomenclature", "Date d'inscription"],
+    rows: all.map((s) => [
+      `${s.lastName.toUpperCase()} ${s.firstName}`,
+      s.sex ? SEX_LABEL[s.sex] : "—",
+      s.classe.name,
+      NOMENCLATURE_LABEL[s.nomenclature],
+      fmtDateFull(s.registeredAt),
+    ]),
+  };
 
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>Élèves</h1>
+          <h1>Élèves{currentYear ? ` — ${currentYear.name}` : ""}</h1>
           <p>
-            {list.length} élève{list.length > 1 ? "s" : ""}
-            {q || classeId ? " trouvé" + (list.length > 1 ? "s" : "") : ` inscrit${list.length > 1 ? "s" : ""}`}
+            {total} élève{total > 1 ? "s" : ""}
+            {q || classeId ? " trouvé" + (total > 1 ? "s" : "") : ` inscrit${total > 1 ? "s" : ""}`}
           </p>
         </div>
         {isStaff(u.role) && (
@@ -80,7 +118,6 @@ export default async function StudentsPage({
           <thead>
             <tr>
               <th>Nom et prénom</th>
-              <th>Matricule</th>
               <th>Sexe</th>
               <th>Classe</th>
               <th>Nomenclature</th>
@@ -90,7 +127,7 @@ export default async function StudentsPage({
           </thead>
           <tbody>
             {list.map((s) => (
-              <tr key={s.id}>
+              <tr key={s.id} style={{ opacity: s.user.active ? 1 : 0.6 }}>
                 <td>
                   <div className="row">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -98,10 +135,8 @@ export default async function StudentsPage({
                     <span>
                       {s.lastName.toUpperCase()} {s.firstName}
                     </span>
+                    {!s.user.active && <span className="tag tag-muted">Compte inactif</span>}
                   </div>
-                </td>
-                <td>
-                  <strong>{s.matricule}</strong>
                 </td>
                 <td>
                   {s.sex ? <span className={`tag ${s.sex}`}>{SEX_LABEL[s.sex]}</span> : "—"}
@@ -118,7 +153,7 @@ export default async function StudentsPage({
             ))}
             {list.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 32 }} className="muted">
+                <td colSpan={6} style={{ textAlign: "center", padding: 32 }} className="muted">
                   {q || classeId ? "Aucun élève ne correspond à votre recherche." : "Aucun élève inscrit pour le moment."}
                 </td>
               </tr>
@@ -126,6 +161,8 @@ export default async function StudentsPage({
           </tbody>
         </table>
       </div>
+
+      <TableFooter path="/students" params={{ q, classe: classeId }} page={page} totalPages={totalPages} total={total} pdf={pdf} />
     </>
   );
 }

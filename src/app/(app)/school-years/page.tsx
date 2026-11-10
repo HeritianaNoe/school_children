@@ -10,9 +10,12 @@ import {
   deleteSchoolYear,
 } from "@/app/actions/school-years";
 import ConfirmButton from "@/components/ConfirmButton";
+import { paginate } from "@/lib/paginate";
+import TableFooter from "@/components/TableFooter";
+import AddDialog from "@/components/AddDialog";
 
 /** Années scolaires : création, année courante, statut et historique des classes. Réservé à l'administrateur et au directeur. */
-export default async function SchoolYearsPage() {
+export default async function SchoolYearsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
   await requireUser(["ADMIN", "DIRECTOR"]);
 
   const years = await prisma.schoolYear.findMany({
@@ -40,49 +43,52 @@ export default async function SchoolYearsPage() {
           <h1>Années scolaires</h1>
           <p>Gestion des années scolaires et historique des classes, élèves et activités</p>
         </div>
+        <AddDialog label="Ajouter une année scolaire" title="Ajouter une année scolaire" maxWidth={600}>
+          <form action={createSchoolYear}>
+            <div className="form-grid">
+              <label>
+                Nom *
+                <input
+                  name="name"
+                  required
+                  maxLength={20}
+                  pattern="\d{4}-\d{4}"
+                  title="Format attendu : 2026-2027"
+                  defaultValue={`${nextStart}-${nextStart + 1}`}
+                />
+              </label>
+              <label>
+                Statut
+                <select name="status" defaultValue="UPCOMING">
+                  {SCHOOL_YEAR_STATUS_VALUES.map((s) => (
+                    <option key={s} value={s}>
+                      {SCHOOL_YEAR_STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Début *
+                <input name="startDate" type="date" required defaultValue={`${nextStart}-09-01`} />
+              </label>
+              <label>
+                Fin *
+                <input name="endDate" type="date" required defaultValue={`${nextStart + 1}-07-15`} />
+              </label>
+            </div>
+            <label style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 14 }}>
+              <input type="checkbox" name="isCurrent" style={{ width: "auto" }} />
+              Définir comme année courante
+            </label>
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" data-dialog-close>
+                Annuler
+              </button>
+              <button type="submit">Ajouter</button>
+            </div>
+          </form>
+        </AddDialog>
       </div>
-
-      <form action={createSchoolYear} className="form-section" style={{ maxWidth: 900 }}>
-        <h3>Ajouter une année scolaire</h3>
-        <div className="form-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
-          <label>
-            Nom *
-            <input
-              name="name"
-              required
-              maxLength={20}
-              pattern="\d{4}-\d{4}"
-              title="Format attendu : 2026-2027"
-              defaultValue={`${nextStart}-${nextStart + 1}`}
-            />
-          </label>
-          <label>
-            Début *
-            <input name="startDate" type="date" required defaultValue={`${nextStart}-09-01`} />
-          </label>
-          <label>
-            Fin *
-            <input name="endDate" type="date" required defaultValue={`${nextStart + 1}-07-15`} />
-          </label>
-          <label>
-            Statut
-            <select name="status" defaultValue="UPCOMING">
-              {SCHOOL_YEAR_STATUS_VALUES.map((s) => (
-                <option key={s} value={s}>
-                  {SCHOOL_YEAR_STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }}>
-          <input type="checkbox" name="isCurrent" style={{ width: "auto" }} />
-          Définir comme année courante
-        </label>
-        <div className="form-actions">
-          <button type="submit">Ajouter</button>
-        </div>
-      </form>
 
       {years.length === 0 && <div className="card muted">Aucune année scolaire enregistrée.</div>}
 
@@ -99,6 +105,17 @@ export default async function SchoolYearsPage() {
           }));
           const total = (k: "students" | "sessions" | "assessments") => rows.reduce((n, r) => n + r[k], 0);
           const plural = (n: number) => (n > 1 ? "s" : "");
+          const pageKey = `p_${y.id}`;
+          const yp = paginate(rows, searchParams[pageKey]);
+          const keepParams = Object.fromEntries(
+            Object.entries(searchParams).filter(([k]) => k.startsWith("p_") && k !== pageKey)
+          );
+          const yearPdf = {
+            title: `Classes - année scolaire ${y.name}`,
+            subtitle: `${rows.length} classe${plural(rows.length)} · ${total("students")} élève${plural(total("students"))} · ${total("sessions")} séance${plural(total("sessions"))} · ${total("assessments")} évaluation${plural(total("assessments"))}`,
+            headers: ["Classe", "Élèves", "Matières", "Enseignants", "Séances", "Évaluations"],
+            rows: rows.map((r) => [r.name, String(r.students), String(r.courses), String(r.teachers), String(r.sessions), String(r.assessments)]),
+          };
 
           return (
             <section className="card" key={y.id}>
@@ -191,7 +208,7 @@ export default async function SchoolYearsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r) => (
+                    {yp.items.map((r) => (
                       <tr key={r.id}>
                         <td>
                           <Link href={`/classes/${r.id}?histo=1`}>
@@ -215,6 +232,15 @@ export default async function SchoolYearsPage() {
                   </tbody>
                 </table>
               </div>
+              <TableFooter
+                path="/school-years"
+                pageParam={pageKey}
+                params={keepParams}
+                page={yp.page}
+                totalPages={yp.totalPages}
+                total={yp.total}
+                pdf={yearPdf}
+              />
             </section>
           );
         })}

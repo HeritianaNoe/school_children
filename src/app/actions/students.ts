@@ -12,6 +12,7 @@ import { nextMatricule } from "@/lib/matricule";
 import { readPhoto } from "@/lib/photo";
 import { parseDateInput } from "@/lib/format";
 import { done, fail } from "@/lib/flash";
+import { accountShouldBeActive } from "@/lib/enrollment";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -87,6 +88,8 @@ export async function createStudent(fd: FormData) {
     fail("/students/new", "password_short");
   }
   const passwordHash = await bcrypt.hash(rawPassword || DEFAULT_PASSWORDS.STUDENT, 10);
+  // Compte actif seulement si la classe appartient à l'année courante
+  const active = await accountShouldBeActive(prisma, classe.schoolYearId);
 
   let studentId: string | null = null;
   // Le matricule est unique : en cas de collision (deux inscriptions simultanées), on recalcule.
@@ -108,7 +111,7 @@ export async function createStudent(fd: FormData) {
           nomenclature: d.nomenclature,
           classe: { connect: { id: classe.id } },
           user: {
-            create: { email, name: `${d.firstName} ${d.lastName}`, role: "STUDENT", passwordHash },
+            create: { email, name: `${d.firstName} ${d.lastName}`, role: "STUDENT", passwordHash, active },
           },
         },
       });
@@ -142,7 +145,10 @@ export async function updateStudent(fd: FormData) {
   const id = String(fd.get("id") ?? "");
   const back = `/students/${id}/edit`;
 
-  const current = await prisma.student.findUnique({ where: { id }, include: { user: true } });
+  const current = await prisma.student.findUnique({
+    where: { id },
+    include: { user: true, classe: { select: { schoolYearId: true } } },
+  });
   if (!current) fail("/students", "not_found");
 
   const parsed = readForm(fd);
@@ -160,6 +166,11 @@ export async function updateStudent(fd: FormData) {
     const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
     if (taken) fail(back, "email_taken");
   }
+
+  // Réinscription = passage dans une classe d'une autre année : le compte suit l'année courante.
+  // (Un simple changement de classe dans la même année ne touche pas à l'état du compte.)
+  const reenrolled = classe.schoolYearId !== current.classe.schoolYearId;
+  const active = reenrolled ? await accountShouldBeActive(prisma, classe.schoolYearId) : undefined;
 
   let photoUrl = current.photoUrl;
   if (!photo.empty) {
@@ -190,7 +201,7 @@ export async function updateStudent(fd: FormData) {
         nomenclature: d.nomenclature,
         photoUrl,
         classe: { connect: { id: classe.id } },
-        user: { update: { email, name: `${d.firstName} ${d.lastName}` } },
+        user: { update: { email, name: `${d.firstName} ${d.lastName}`, ...(active === undefined ? {} : { active }) } },
       },
     });
   } catch (e) {
