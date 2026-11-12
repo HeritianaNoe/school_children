@@ -15,7 +15,8 @@ import TableFooter from "@/components/TableFooter";
 import AddDialog from "@/components/AddDialog";
 
 /** Années scolaires : création, année courante, statut et historique des classes. Réservé à l'administrateur et au directeur. */
-export default async function SchoolYearsPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
+export default async function SchoolYearsPage({ searchParams: searchParamsP }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const searchParams = await searchParamsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
 
   const years = await prisma.schoolYear.findMany({

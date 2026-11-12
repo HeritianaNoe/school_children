@@ -19,7 +19,8 @@ async function defaultPhoto(sex: "M" | "F" | null, seed: string) {
 }
 
 /** Fiche d'inscription au format PDF (A4). Ajoutez ?inline=1 pour l'afficher dans le navigateur au lieu de la télécharger. */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await getSession();
   if (!u) return new Response("Non authentifié", { status: 401 });
 

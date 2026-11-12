@@ -89,6 +89,10 @@ export default function Nav({
         { href: `/students/${studentId}/bulletin`, label: "Mon bulletin", icon: "award", show: !!studentId },
       ],
     },
+    {
+      title: "Système",
+      links: [{ href: "/settings", label: "Paramètres", icon: "settings", show: true }],
+    },
   ];
 
   const allVisible = sections.flatMap((s) => s.links.filter((l) => l.show));

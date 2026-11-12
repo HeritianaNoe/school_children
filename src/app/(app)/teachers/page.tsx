@@ -7,7 +7,8 @@ import { TEACHER_STATUS_LABEL, TEACHER_STATUS_VALUES } from "@/lib/labels";
 import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
-export default async function TeachersPage({ searchParams }: { searchParams: { q?: string; statut?: string; page?: string } }) {
+export default async function TeachersPage({ searchParams: searchParamsP }: { searchParams: Promise<{ q?: string; statut?: string; page?: string }> }) {
+  const searchParams = await searchParamsP;
   await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
 
   const q = (searchParams.q ?? "").trim();
@@ -15,28 +16,29 @@ export default async function TeachersPage({ searchParams }: { searchParams: { q
     ? (searchParams.statut as (typeof TEACHER_STATUS_VALUES)[number])
     : "";
 
-  // Créer les fiches Teacher manquantes (comptes TEACHER sans fiche), indépendamment des filtres
-  const missing = await prisma.user.findMany({
-    where: { role: "TEACHER", teacher: { is: null } },
-    select: { id: true },
-  });
+  const listQuery = {
+    where: {
+      role: "TEACHER" as const,
+      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+      ...(statut ? { teacher: { is: { status: statut } } } : {}),
+    },
+    include: { teacher: true },
+    orderBy: { name: "asc" as const },
+  };
+
+  // Fiches Teacher manquantes (comptes TEACHER sans fiche) et liste lues en même temps
+  const [missing, firstRead] = await Promise.all([
+    prisma.user.findMany({ where: { role: "TEACHER", teacher: { is: null } }, select: { id: true } }),
+    prisma.user.findMany(listQuery),
+  ]);
+  let all = firstRead;
   if (missing.length > 0) {
     await prisma.teacher.createMany({
       data: missing.map((u) => ({ userId: u.id, hourlyRate: 0 })),
       skipDuplicates: true,
     });
+    all = await prisma.user.findMany(listQuery); // relecture seulement si des fiches viennent d'être créées
   }
-
-  // Utilisateurs au rôle TEACHER (source de vérité = Utilisateurs), filtrés par nom et par statut
-  const all = await prisma.user.findMany({
-    where: {
-      role: "TEACHER",
-      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
-      ...(statut ? { teacher: { is: { status: statut } } } : {}),
-    },
-    include: { teacher: true },
-    orderBy: { name: "asc" },
-  });
   const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
   const pdf = {
     title: "Enseignants",

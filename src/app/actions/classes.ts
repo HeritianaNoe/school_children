@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { CAPACITY_TAG } from "@/lib/capacity";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, fail } from "@/lib/flash";
@@ -14,7 +15,6 @@ const classeSchema = z.object({
   name: z.string().trim().min(1).max(50),
   schoolYearId: z.string().min(1),
   roomNumber: z.string().trim().max(20).optional(),
-  capacity: z.coerce.number().int().min(1).max(500).optional(),
 });
 
 /** Lit le formulaire : champs facultatifs vides => undefined. */
@@ -27,7 +27,6 @@ function readClasse(fd: FormData) {
     name: fd.get("name"),
     schoolYearId: fd.get("schoolYearId"),
     roomNumber: opt("roomNumber"),
-    capacity: opt("capacity"),
   });
 }
 
@@ -46,9 +45,9 @@ export async function createClasse(fd: FormData) {
         name: p.data.name,
         schoolYearId: p.data.schoolYearId,
         roomNumber: p.data.roomNumber ?? null,
-        ...(p.data.capacity !== undefined ? { capacity: p.data.capacity } : {}),
       },
     });
+    revalidateTag(CAPACITY_TAG);
     revalidatePath("/classes");
     done(`/classes/${c.id}`, "class_created");
   } catch (e) {
@@ -76,13 +75,13 @@ export async function updateClasse(fd: FormData) {
         name: p.data.name,
         schoolYearId: p.data.schoolYearId,
         roomNumber: p.data.roomNumber ?? null,
-        capacity: p.data.capacity ?? null,
       },
     });
   } catch (e) {
     if (isUnique(e)) fail(editPage, "class_exists");
     throw e;
   }
+  revalidateTag(CAPACITY_TAG);
   revalidatePath("/classes");
   revalidatePath(`/classes/${id}`);
   done(back, "class_updated");
@@ -103,6 +102,7 @@ export async function deleteClasse(fd: FormData) {
     prisma.course.deleteMany({ where: { classeId: id } }),
     prisma.classe.delete({ where: { id } }),
   ]);
+  revalidateTag(CAPACITY_TAG);
   revalidatePath("/classes");
   done("/classes", "class_deleted");
 }
@@ -134,6 +134,7 @@ export async function addCourse(fd: FormData) {
     if (isUnique(e)) fail(back, "course_exists");
     throw e;
   }
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(back);
   done(back, "course_added");
 }
@@ -153,6 +154,7 @@ export async function updateCourse(fd: FormData) {
   if (!p.success) fail(back, "validation");
   await prisma.course.update({ where: { id }, data: p.data });
   await activateTeacherForClasse(prisma, p.data.teacherId, course.classe.schoolYearId);
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(back);
   done(back, "course_updated");
 }
@@ -168,6 +170,7 @@ export async function deleteCourse(fd: FormData) {
     (await prisma.assessment.count({ where: { courseId: id } }));
   if (used > 0) fail(back, "course_in_use");
   await prisma.course.delete({ where: { id } });
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(back);
   done(back, "course_removed");
 }

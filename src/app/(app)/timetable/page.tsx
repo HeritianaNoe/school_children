@@ -10,7 +10,8 @@ import PdfLink from "@/components/PdfLink";
 import ConfirmButton from "@/components/ConfirmButton";
 import SlotForm from "@/components/SlotForm";
 
-export default async function TimetablePage({ searchParams }: { searchParams: { vue?: string; semaine?: string } }) {
+export default async function TimetablePage({ searchParams: searchParamsP }: { searchParams: Promise<{ vue?: string; semaine?: string }> }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser();
   const canManage = u.role === "ADMIN" || u.role === "DIRECTOR";
   const isStudent = u.role === "STUDENT";

@@ -9,7 +9,8 @@ import { forbidden } from "@/lib/flash";
 import GradesForm from "@/components/GradesForm";
 import ConfirmButton from "@/components/ConfirmButton";
 
-export default async function AssessmentPage({ params }: { params: { id: string } }) {
+export default async function AssessmentPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const a = await prisma.assessment.findUnique({
     where: { id: params.id },

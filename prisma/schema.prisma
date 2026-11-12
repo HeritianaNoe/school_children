@@ -449,3 +449,13 @@ model Announcement {
 
   @@index([createdAt])
 }
+
+// ───────── Paramètres de l'application (clé / valeur) ─────────
+// ex : « max_students_per_class » = « 40 ». Créé par « npm run db:push ».
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}

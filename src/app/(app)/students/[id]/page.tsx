@@ -11,12 +11,14 @@ import ConfirmButton from "@/components/ConfirmButton";
 import PdfLink from "@/components/PdfLink";
 
 export default async function StudentPage({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchParamsP,
 }: {
-  params: { id: string };
-  searchParams: { created?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchParamsP;
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },

@@ -8,7 +8,8 @@ import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
 import { userImageUrl } from "@/lib/avatar";
 import PhotoInput from "@/components/PhotoInput";
 
-export default async function EditUserPage({ params }: { params: { id: string } }) {
+export default async function EditUserPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   const user = await prisma.user.findUnique({
     where: { id: params.id },

@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { CAPACITY_TAG } from "@/lib/capacity";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, fail } from "@/lib/flash";
@@ -79,9 +80,11 @@ export async function createSchoolYear(fd: FormData) {
     if (isUnique(e)) fail(PAGE, "school_year_exists");
     throw e;
   }
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(PAGE);
   revalidatePath("/classes");
   if (makeCurrent) {
+    revalidateTag(CAPACITY_TAG);
     revalidatePath("/students");
     revalidatePath("/teachers");
     revalidatePath("/users");
@@ -119,6 +122,7 @@ export async function updateSchoolYear(fd: FormData) {
     if (isUnique(e)) fail(PAGE, "school_year_exists");
     throw e;
   }
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(PAGE);
   revalidatePath("/classes");
   done(PAGE, "school_year_updated");
@@ -143,6 +147,7 @@ export async function setCurrentSchoolYear(fd: FormData) {
       await ensureContractsForYear(tx, id);
     }
   });
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(PAGE);
   revalidatePath("/classes");
   revalidatePath("/students");
@@ -158,6 +163,7 @@ export async function deleteSchoolYear(fd: FormData) {
   const classes = await prisma.classe.count({ where: { schoolYearId: id } });
   if (classes > 0) fail(PAGE, "school_year_has_classes");
   await prisma.schoolYear.delete({ where: { id } });
+  revalidateTag(CAPACITY_TAG);
   revalidatePath(PAGE);
   done(PAGE, "school_year_deleted");
 }

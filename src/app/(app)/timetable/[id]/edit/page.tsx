@@ -6,12 +6,14 @@ import { updateSlot } from "@/app/actions/timetable";
 import SlotForm from "@/components/SlotForm";
 
 export default async function EditSlotPage({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchParamsP,
 }: {
-  params: { id: string };
-  searchParams: { vue?: string; semaine?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ vue?: string; semaine?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchParamsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   const slot = await prisma.timetableSlot.findUnique({ where: { id: params.id } });
   if (!slot) notFound();

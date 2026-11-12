@@ -9,7 +9,8 @@ const slug = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /** Contrat d'enseignement (PDF A4). ?inline=1 l'affiche dans le navigateur au lieu de le télécharger. */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await getSession();
   if (!u) return new Response("Non authentifié", { status: 401 });
 

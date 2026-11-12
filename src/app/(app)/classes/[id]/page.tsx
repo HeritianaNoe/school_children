@@ -8,12 +8,14 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
 export default async function ClassePage({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchParamsP,
 }: {
-  params: { id: string };
-  searchParams: { histo?: string; cpage?: string; spage?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ histo?: string; cpage?: string; spage?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchParamsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   // Ouverte depuis « Historique des années » : consultation seule, aucune modification possible
   const readOnly = searchParams.histo === "1";
@@ -99,10 +101,6 @@ export default async function ClassePage({
           <label>
             Salle
             <input name="roomNumber" maxLength={20} defaultValue={c.roomNumber ?? ""} />
-          </label>
-          <label>
-            Capacité
-            <input name="capacity" type="number" min={1} max={500} defaultValue={c.capacity ?? ""} />
           </label>
           <button type="submit">Enregistrer</button>
         </div>

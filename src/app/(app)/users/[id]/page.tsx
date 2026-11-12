@@ -6,7 +6,8 @@ import { requireUser } from "@/lib/session";
 import { ROLE_LABEL } from "@/lib/labels";
 import { userImageUrl } from "@/lib/avatar";
 
-export default async function UserDetailPage({ params }: { params: { id: string } }) {
+export default async function UserDetailPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   const user = await prisma.user.findUnique({
     where: { id: params.id },

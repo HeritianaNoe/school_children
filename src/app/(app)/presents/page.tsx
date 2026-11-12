@@ -10,21 +10,23 @@ import PdfLink from "@/components/PdfLink";
 
 /** Élèves présents, par séance et par jour. Visible par tous les comptes connectés. */
 export default async function PresentsPage({
-  searchParams,
+  searchParams: searchParamsP,
 }: {
-  searchParams: Record<string, string | undefined>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser();
   // Élève : sa propre classe uniquement, avec un filtre par date seulement (pas de filtre de classe)
   const isStudent = u.role === "STUDENT";
-  const own = isStudent ? await prisma.student.findUnique({ where: { userId: u.id }, select: { classeId: true } }) : null;
-
   const day = parseDay(searchParams.date);
-  const classes = await prisma.classe.findMany({
-    where: { students: { some: {} } }, // uniquement les classes qui ont des élèves
-    include: { schoolYear: true },
-    orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
-  });
+  const [own, classes] = await Promise.all([
+    isStudent ? prisma.student.findUnique({ where: { userId: u.id }, select: { classeId: true } }) : null,
+    prisma.classe.findMany({
+      where: { students: { some: {} } }, // uniquement les classes qui ont des élèves
+      include: { schoolYear: true },
+      orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
+    }),
+  ]);
   const classeId = isStudent
     ? own?.classeId ?? ""
     : classes.some((c) => c.id === searchParams.classe)

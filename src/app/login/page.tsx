@@ -1,11 +1,12 @@
-import { login } from "@/app/actions/auth";
 import Icon from "@/components/Icons";
 
-export default function LoginPage({
-  searchParams,
+export default async function LoginPage({
+  searchParams: searchParamsP,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const searchParams = await searchParamsP;
+  const params = await searchParams;
   return (
     <main className="login-shell">
       <section className="login-brand" aria-hidden="true">
@@ -33,15 +34,15 @@ export default function LoginPage({
           <h1>Connexion</h1>
           <p className="muted">Entrez vos identifiants pour accéder à votre espace.</p>
 
-          {searchParams.error && (
+          {params.error && (
             <p className="error" role="alert">
-              {searchParams.error === "session"
+              {params.error === "session"
                 ? "Votre session a expiré ou le compte n'existe plus. Veuillez vous reconnecter."
                 : "Email ou mot de passe incorrect."}
             </p>
           )}
 
-          <form action={login} className="form-grid">
+          <form action="/api/auth/login" method="post" className="form-grid">
             <label>
               Adresse e-mail
               <input name="email" type="email" required autoComplete="username" placeholder="prenom.nom@ecole.mg" />

@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { updateClasse } from "@/app/actions/classes";
 
-export default async function EditClassePage({ params }: { params: { id: string } }) {
+export default async function EditClassePage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   const c = await prisma.classe.findUnique({ where: { id: params.id }, include: { schoolYear: true } });
   if (!c) notFound();
@@ -46,10 +47,6 @@ export default async function EditClassePage({ params }: { params: { id: string 
           <label>
             Salle
             <input name="roomNumber" maxLength={20} defaultValue={c.roomNumber ?? ""} />
-          </label>
-          <label>
-            Capacité
-            <input name="capacity" type="number" min={1} max={500} defaultValue={c.capacity ?? ""} />
           </label>
         </div>
         <div className="form-actions">

@@ -45,6 +45,7 @@ export const MESSAGES = {
     notifications_read: "Notifications marquées comme lues.",
     password_changed: "Mot de passe modifié.",
     account_updated: "Compte mis à jour.",
+    settings_saved: "Paramètres enregistrés.",
     announcement_created: "Annonce publiée.",
     reclamation_created: "Réclamation envoyée.",
     created: "Élément créé avec succès.",

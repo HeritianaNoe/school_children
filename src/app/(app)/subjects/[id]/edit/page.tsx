@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { updateSubject } from "@/app/actions/subjects";
 
-export default async function EditSubjectPage({ params }: { params: { id: string } }) {
+export default async function EditSubjectPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   const subject = await prisma.subject.findUnique({ where: { id: params.id } });
   if (!subject) notFound();

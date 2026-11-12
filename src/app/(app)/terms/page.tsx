@@ -9,7 +9,8 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 import AddDialog from "@/components/AddDialog";
 
-export default async function TermsPage({ searchParams }: { searchParams: { page?: string } }) {
+export default async function TermsPage({ searchParams: searchParamsP }: { searchParams: Promise<{ page?: string }> }) {
+  const searchParams = await searchParamsP;
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   // La création est réservée à l'administrateur et au directeur (comme l'action serveur)
   const canCreate = me.role === "ADMIN" || me.role === "DIRECTOR";

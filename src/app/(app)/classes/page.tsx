@@ -7,22 +7,31 @@ import ConfirmButton from "@/components/ConfirmButton";
 import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 import AddDialog from "@/components/AddDialog";
+import { getMaxStudentsPerClass } from "@/lib/settings";
 
-export default async function ClassesPage({ searchParams }: { searchParams: { page?: string; classe?: string; annee?: string } }) {
+export default async function ClassesPage({ searchParams: searchParamsP }: { searchParams: Promise<{ page?: string; classe?: string; annee?: string }> }) {
+  const searchParams = await searchParamsP;
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   // Les actions sur les classes sont réservées à l'administrateur et au directeur
   const canEdit = me.role === "ADMIN" || me.role === "DIRECTOR";
   const classeName = searchParams.classe ?? "";
   const yearId = searchParams.annee ?? "";
-  const [schoolYears, everyClasse] = await Promise.all([
+  const [schoolYears, everyClasse, allClasses, maxStudents] = await Promise.all([
     prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } }),
     prisma.classe.findMany({ select: { name: true }, distinct: ["name"], orderBy: { name: "asc" } }),
+    prisma.classe.findMany({
+      where: { ...(classeName ? { name: classeName } : {}), ...(yearId ? { schoolYearId: yearId } : {}) },
+      select: {
+        id: true,
+        name: true,
+        roomNumber: true,
+        schoolYear: { select: { name: true } },
+        _count: { select: { students: true, courses: true } },
+      },
+      orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
+    }),
+    getMaxStudentsPerClass(),
   ]);
-  const allClasses = await prisma.classe.findMany({
-    where: { ...(classeName ? { name: classeName } : {}), ...(yearId ? { schoolYearId: yearId } : {}) },
-    include: { schoolYear: true, _count: { select: { students: true, courses: true } } },
-    orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
-  });
   const { items: classes, page, totalPages, total } = paginate(allClasses, searchParams.page);
   const pdf = {
     title: "Classes",
@@ -38,7 +47,7 @@ export default async function ClassesPage({ searchParams }: { searchParams: { pa
       c.name,
       c.schoolYear.name,
       c.roomNumber ?? "—",
-      c.capacity ? `${c._count.students} / ${c.capacity}` : String(c._count.students),
+      `${c._count.students} / ${maxStudents}`,
       String(c._count.courses),
     ]),
   };
@@ -79,10 +88,6 @@ export default async function ClassesPage({ searchParams }: { searchParams: { pa
                   <label>
                     Salle
                     <input name="roomNumber" maxLength={20} placeholder="Salle 04" />
-                  </label>
-                  <label>
-                    Capacité
-                    <input name="capacity" type="number" min={1} max={500} defaultValue={40} />
                   </label>
                 </div>
                 <div className="form-actions">
@@ -150,8 +155,10 @@ export default async function ClassesPage({ searchParams }: { searchParams: { pa
                 <td className="muted">{c.schoolYear.name}</td>
                 <td className="muted">{c.roomNumber ?? "—"}</td>
                 <td>
-                  {c._count.students}
-                  {c.capacity ? <span className="muted"> / {c.capacity}</span> : null}
+                  <span style={c._count.students > maxStudents ? { color: "var(--danger)", fontWeight: 700 } : undefined}>
+                    {c._count.students}
+                  </span>
+                  <span className="muted"> / {maxStudents}</span>
                 </td>
                 <td>{c._count.courses}</td>
                 <td>

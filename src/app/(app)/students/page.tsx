@@ -9,10 +9,11 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
 export default async function StudentsPage({
-  searchParams,
+  searchParams: searchParamsP,
 }: {
-  searchParams: { q?: string; classe?: string; page?: string };
+  searchParams: Promise<{ q?: string; classe?: string; page?: string }>;
 }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const q = (searchParams.q ?? "").trim();
 
@@ -21,17 +22,18 @@ export default async function StudentsPage({
   const currentYear = await prisma.schoolYear.findFirst({ where: { isCurrent: true } });
   const yearFilter = currentYear ? { schoolYearId: currentYear.id } : {};
 
-  const classes = await prisma.classe.findMany({
+  // Les classes et les élèves sont chargés en parallèle (une seule attente au lieu de deux)
+  const classesPromise = prisma.classe.findMany({
     where: yearFilter,
-    include: { schoolYear: true },
+    select: { id: true, name: true, schoolYear: { select: { name: true } } },
     orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
   });
-  // Un ?classe=… d'une année passée (ancien lien, favori) est ignoré
-  const classeId = classes.some((c) => c.id === searchParams.classe) ? (searchParams.classe as string) : "";
+  const classeParam = searchParams.classe ?? "";
 
   const where = {
     classe: yearFilter,
-    ...(classeId ? { classeId } : {}),
+    // Le filtre de classe est appliqué directement ; un identifiant d'une autre année ne renvoie simplement rien
+    ...(classeParam ? { classeId: classeParam } : {}),
     ...(q
       ? {
           OR: [
@@ -43,11 +45,26 @@ export default async function StudentsPage({
       : {}),
   };
 
-  const all = await prisma.student.findMany({
-    where,
-    include: { classe: true, user: { select: { active: true } } },
-    orderBy: [{ classe: { name: "asc" } }, { lastName: "asc" }, { firstName: "asc" }],
-  });
+  const [classes, all] = await Promise.all([
+    classesPromise,
+    prisma.student.findMany({
+      where,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        sex: true,
+        photoUrl: true,
+        nomenclature: true,
+        registeredAt: true,
+        classe: { select: { name: true } },
+        user: { select: { active: true } },
+      },
+      orderBy: [{ classe: { name: "asc" } }, { lastName: "asc" }, { firstName: "asc" }],
+    }),
+  ]);
+  // Un ?classe=… d'une année passée (ancien lien, favori) est ignoré dans le filtre
+  const classeId = classes.some((c) => c.id === classeParam) ? classeParam : "";
   const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
 
   const classeLabel = classes.find((c) => c.id === classeId);

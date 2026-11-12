@@ -5,7 +5,8 @@ import { buildNotesPdf } from "@/lib/notes-pdf";
 export const dynamic = "force-dynamic";
 
 /** Relevé de notes par matière (PDF A4). ?inline=1 pour affichage navigateur. */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await getSession();
   if (!u) return new Response("Non authentifié", { status: 401 });
 

@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { STUDENT_ALERTS_TAG } from "@/lib/student-alerts";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, forbidden } from "@/lib/flash";
@@ -72,6 +73,7 @@ export async function saveStudentAttendance(input: unknown) {
     ),
     prisma.session.update({ where: { id: validSessionId }, data: { status: "DONE" } }),
   ]);
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath(`/sessions/${validSessionId}`);
   done(`/sessions/${validSessionId}`, "attendance_saved");
 }
@@ -106,6 +108,7 @@ export async function saveTeacherAttendance(fd: FormData) {
     create: { sessionId: d.sessionId, teacherId: s.teacherId, ...data },
     update: data,
   });
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath(`/sessions/${d.sessionId}`);
   done(`/sessions/${d.sessionId}`, "teacher_attendance_saved");
 }

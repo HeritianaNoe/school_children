@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import Nav from "@/components/Nav";
 import TopBar from "@/components/TopBar";
 import FlashToast from "@/components/FlashToast";
+import AlertsBell from "@/components/AlertsBell";
 import { requireUser, loadAccount } from "@/lib/session";
+import { ROLES, hasRole } from "@/lib/permissions";
 import { userImageUrl } from "@/lib/avatar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +17,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="app-shell">
       <Nav user={user} studentId={student?.id} avatarUrl={avatarUrl} />
       <div className="main-area">
-        <TopBar />
+        <TopBar>
+          {hasRole(user.role, ROLES.STAFF) && (
+            <Suspense fallback={null}>
+              <AlertsBell canConfigure={hasRole(user.role, ROLES.STAFF)} />
+            </Suspense>
+          )}
+        </TopBar>
         <main className="content">{children}</main>
       </div>
       <Suspense fallback={null}>

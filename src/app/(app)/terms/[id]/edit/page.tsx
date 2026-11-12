@@ -5,7 +5,8 @@ import { requireUser } from "@/lib/session";
 import { updateTerm } from "@/app/actions/terms";
 import { toDateInput } from "@/lib/format";
 
-export default async function EditTermPage({ params }: { params: { id: string } }) {
+export default async function EditTermPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   const [term, schoolYears] = await Promise.all([
     prisma.term.findUnique({

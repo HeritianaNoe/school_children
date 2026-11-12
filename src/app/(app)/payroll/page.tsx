@@ -8,7 +8,8 @@ import { forbidden } from "@/lib/flash";
 import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
-export default async function Payroll({ searchParams }: { searchParams: { month?: string; page?: string } }) {
+export default async function Payroll({ searchParams: searchParamsP }: { searchParams: Promise<{ month?: string; page?: string }> }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const month = searchParams.month ?? new Date().toISOString().slice(0, 7);
 

@@ -5,7 +5,8 @@ import { requireUser } from "@/lib/session";
 import { updateStudent } from "@/app/actions/students";
 import StudentForm from "@/components/StudentForm";
 
-export default async function EditStudentPage({ params }: { params: { id: string } }) {
+export default async function EditStudentPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   const s = await prisma.student.findUnique({ where: { id: params.id }, include: { user: true } });
   if (!s) notFound();

@@ -1,7 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { STUDENT_ALERTS_TAG } from "@/lib/student-alerts";
 import { prisma } from "@/lib/prisma";
 import { requireUser, type SessionUser } from "@/lib/session";
 import { parseDateInput } from "@/lib/format";
@@ -64,6 +65,7 @@ export async function saveGrades(fd: FormData) {
       })
     )
   );
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath(back);
   done(back, "grades_saved");
 }
@@ -76,6 +78,7 @@ export async function deleteGrade(fd: FormData) {
   await assertCourseAccess(user, grade.assessment.courseId);
 
   await prisma.grade.delete({ where: { id: gradeId } });
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath(`/students/${grade.studentId}`);
   done(`/assessments/${grade.assessmentId}`, "grade_deleted");
 }
@@ -112,6 +115,7 @@ export async function createAssessment(fd: FormData) {
   const a = await prisma.assessment.create({
     data: { ...p.data, title, courseId, date: parseDateInput(p.data.date) },
   });
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/assessments");
   done(`/assessments/${a.id}`, "assessment_created");
 }
@@ -134,6 +138,7 @@ export async function updateAssessment(fd: FormData) {
     where: { id },
     data: { ...p.data, date: parseDateInput(p.data.date) },
   });
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/assessments");
   done(`/assessments/${id}`, "assessment_updated");
 }
@@ -146,6 +151,7 @@ export async function deleteAssessment(fd: FormData) {
   await assertCourseAccess(user, a.courseId);
 
   await prisma.assessment.delete({ where: { id } }); // les notes associées sont supprimées en cascade
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/assessments");
   done("/assessments", "assessment_deleted");
 }

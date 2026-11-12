@@ -4,7 +4,8 @@ import { getSession } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 /** Sert la photo d'un élève (réservée aux utilisateurs connectés : personnel, enseignants, l'élève lui-même). */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await getSession();
   if (!u) return new Response("Non authentifié", { status: 401 });
 

@@ -9,7 +9,8 @@ import { changeSessionTeacher } from "@/app/actions/sessions";
 import { ATTENDANCE_LABEL, SESSION_STATUS_LABEL } from "@/lib/labels";
 import { forbidden } from "@/lib/flash";
 
-export default async function SessionPage({ params }: { params: { id: string } }) {
+export default async function SessionPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const s = await prisma.session.findUnique({
     where: { id: params.id },

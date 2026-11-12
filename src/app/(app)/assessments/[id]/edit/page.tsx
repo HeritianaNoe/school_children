@@ -7,7 +7,8 @@ import { toDateInput } from "@/lib/format";
 import { ASSESSMENT_TYPE_LABEL } from "@/lib/labels";
 import { forbidden } from "@/lib/flash";
 
-export default async function EditAssessmentPage({ params }: { params: { id: string } }) {
+export default async function EditAssessmentPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const a = await prisma.assessment.findUnique({
     where: { id: params.id },

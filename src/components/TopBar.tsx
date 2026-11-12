@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { logout } from "@/app/actions/auth";
 import Icon from "./Icons";
 
@@ -8,7 +8,7 @@ import Icon from "./Icons";
  * Barre supérieure du contenu : bouton menu (gauche) + déconnexion (droite).
  * Dialogue avec <Nav /> via événements pour ouvrir / fermer la sidebar.
  */
-export default function TopBar() {
+export default function TopBar({ children }: { children?: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -43,6 +43,8 @@ export default function TopBar() {
         <Icon name={open ? "close" : "menu"} size={20} />
       </button>
 
+      <div className="topbar-actions">
+      {children}
       <form action={logout} className="topbar-logout flex items-center" style={{ display: "flex", alignItems: "center" }}>
         <button 
           type="submit" 
@@ -50,13 +52,14 @@ export default function TopBar() {
           style={{ 
             display: "flex", 
             alignItems: "center",
-           transform: "translateY(1px)" // Natao hiakatra kokoa koa ny an'ny logout
+           transform: "translateY(1px)"
           }}
         >
           <Icon name="logout" size={16} />
           <span className="logout-label">Se déconnecter</span>
         </button>
       </form>
+      </div>
     </div>
   );
 }

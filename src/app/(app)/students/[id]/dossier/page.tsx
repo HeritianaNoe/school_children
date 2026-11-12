@@ -15,12 +15,14 @@ import AddDialog from "@/components/AddDialog";
 
 /** Dossier d'élève : présences (30 derniers jours), moyennes, notes et commentaires. */
 export default async function StudentDossierPage({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchParamsP,
 }: {
-  params: { id: string };
-  searchParams: { page?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchParamsP;
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },

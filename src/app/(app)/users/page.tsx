@@ -10,10 +10,11 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
 export default async function UsersPage({
-  searchParams,
+  searchParams: searchParamsP,
 }: {
-  searchParams: { q?: string; role?: string; page?: string };
+  searchParams: Promise<{ q?: string; role?: string; page?: string }>;
 }) {
+  const searchParams = await searchParamsP;
   const me = await requireUser(["ADMIN", "DIRECTOR", "MANAGER"]);
   const q = (searchParams.q ?? "").trim();
   const role = searchParams.role ?? "";
@@ -49,13 +50,12 @@ export default async function UsersPage({
     ]
       .filter(Boolean)
       .join(" · "),
-    headers: ["Nom", "E-mail", "Rôle", "Statut", "Liens"],
+    headers: ["Nom", "E-mail", "Rôle", "Statut"],
     rows: all.map((u) => [
       u.name,
       u.email,
       ROLE_LABEL[u.role] ?? u.role,
       u.active ? "Actif" : "Inactif",
-      u.student ? `Élève ${u.student.matricule}` : u.teacher ? "Enseignant" : "—",
     ]),
   };
 
@@ -106,14 +106,13 @@ export default async function UsersPage({
               <th>Nom</th>
               <th>Rôle</th>
               <th>Statut</th>
-              <th>Liens</th>
               <th style={{ width: 240 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={5} className="muted" style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={4} className="muted" style={{ textAlign: "center", padding: 24 }}>
                   Aucun utilisateur trouvé.
                 </td>
               </tr>
@@ -134,13 +133,6 @@ export default async function UsersPage({
                     ) : (
                       <span className="tag tag-muted">Inactif</span>
                     )}
-                  </td>
-                  <td className="muted" style={{ fontSize: "0.85rem" }}>
-                    {u.student && (
-                      <Link href={`/students/${u.student.id}`}>Élève {u.student.matricule}</Link>
-                    )}
-                    {u.teacher && <span>Enseignant</span>}
-                    {!u.student && !u.teacher && "—"}
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>

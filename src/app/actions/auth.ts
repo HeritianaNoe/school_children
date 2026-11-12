@@ -16,6 +16,6 @@ export async function login(fd: FormData) {
 }
 
 export async function logout() {
-  destroySession();
+  await destroySession();
   redirect("/login");
 }

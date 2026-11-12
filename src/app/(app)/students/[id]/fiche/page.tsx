@@ -7,7 +7,8 @@ import { requireUser } from "@/lib/session";
 import { fmtDateFull } from "@/lib/format";
 import { SEX_LABEL_LONG, NOMENCLATURE_LABEL } from "@/lib/labels";
 
-export default async function FichePage({ params }: { params: { id: string } }) {
+export default async function FichePage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const s = await prisma.student.findUnique({
     where: { id: params.id },

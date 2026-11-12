@@ -7,7 +7,8 @@ import { forbidden } from "@/lib/flash";
 import { fmtDate } from "@/lib/format";
 import { getBulletinData } from "@/lib/bulletin";
 
-export default async function StudentBulletinPage({ params }: { params: { id: string } }) {
+export default async function StudentBulletinPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },

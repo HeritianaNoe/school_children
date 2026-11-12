@@ -2,7 +2,9 @@
 
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { STUDENT_ALERTS_TAG } from "@/lib/student-alerts";
+import { CAPACITY_TAG } from "@/lib/capacity";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -134,6 +136,8 @@ export async function createStudent(fd: FormData) {
     });
   }
 
+  revalidateTag(CAPACITY_TAG);
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/students");
   revalidatePath("/classes");
   revalidatePath("/dashboard");
@@ -209,6 +213,8 @@ export async function updateStudent(fd: FormData) {
     throw e;
   }
 
+  revalidateTag(CAPACITY_TAG);
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/students");
   revalidatePath(`/students/${id}`);
   done(`/students/${id}`, "student_updated");
@@ -229,6 +235,8 @@ export async function deleteStudent(fd: FormData) {
     prisma.user.delete({ where: { id: s.userId } }),
   ]);
 
+  revalidateTag(CAPACITY_TAG);
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/students");
   revalidatePath("/dashboard");
   done("/students", "student_deleted");

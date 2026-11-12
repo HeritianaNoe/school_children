@@ -6,7 +6,8 @@ import { requireUser } from "@/lib/session";
 import { forbidden } from "@/lib/flash";
 import { fmtDate } from "@/lib/format";
 
-export default async function StudentNotesPage({ params }: { params: { id: string } }) {
+export default async function StudentNotesPage({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await requireUser();
   const s = await prisma.student.findUnique({
     where: { id: params.id },

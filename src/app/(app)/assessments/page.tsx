@@ -8,34 +8,37 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
 export default async function AssessmentsPage({
-  searchParams,
+  searchParams: searchParamsP,
 }: {
-  searchParams: { classe?: string; matiere?: string; page?: string };
+  searchParams: Promise<{ classe?: string; matiere?: string; page?: string }>;
 }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const classeId = searchParams.classe ?? "";
   const subjectId = searchParams.matiere ?? "";
   const ownCourses = u.role === "TEACHER" ? { teacher: { userId: u.id } } : {};
 
-  const classes = await prisma.classe.findMany({
-    where: { courses: { some: ownCourses } },
-    include: { schoolYear: true },
-    orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
-  });
-  // Matières proposées dans le filtre : celles des enseignements visibles par l'utilisateur
-  const subjects = await prisma.subject.findMany({
-    where: { courses: { some: ownCourses } },
-    orderBy: { name: "asc" },
-  });
-  const all = await prisma.assessment.findMany({
-    where: { course: { ...ownCourses, ...(classeId ? { classeId } : {}), ...(subjectId ? { subjectId } : {}) } },
-    orderBy: { date: "desc" },
-    include: {
-      course: { include: { classe: { include: { schoolYear: true } }, subject: true } },
-      term: { include: { schoolYear: true } },
-      _count: { select: { grades: true } },
-    },
-  });
+  const [classes, subjects, all] = await Promise.all([
+    prisma.classe.findMany({
+      where: { courses: { some: ownCourses } },
+      include: { schoolYear: true },
+      orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
+    }),
+    // Matières proposées dans le filtre : celles des enseignements visibles par l'utilisateur
+    prisma.subject.findMany({
+      where: { courses: { some: ownCourses } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.assessment.findMany({
+      where: { course: { ...ownCourses, ...(classeId ? { classeId } : {}), ...(subjectId ? { subjectId } : {}) } },
+      orderBy: { date: "desc" },
+      include: {
+        course: { include: { classe: { include: { schoolYear: true } }, subject: true } },
+        term: { include: { schoolYear: true } },
+        _count: { select: { grades: true } },
+      },
+    }),
+  ]);
 
   const { items: list, page, totalPages, total } = paginate(all, searchParams.page);
   const classeLabel = classes.find((c) => c.id === classeId);

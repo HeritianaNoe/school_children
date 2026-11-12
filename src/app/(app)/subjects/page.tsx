@@ -8,7 +8,8 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 import AddDialog from "@/components/AddDialog";
 
-export default async function SubjectsPage({ searchParams }: { searchParams: { page?: string } }) {
+export default async function SubjectsPage({ searchParams: searchParamsP }: { searchParams: Promise<{ page?: string }> }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const canManage = isStaff(u.role);
   const allSubjects = await prisma.subject.findMany({

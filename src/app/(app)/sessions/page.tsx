@@ -10,10 +10,11 @@ import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
 export default async function SessionsPage({
-  searchParams,
+  searchParams: searchParamsP,
 }: {
-  searchParams: { classe?: string; teacher?: string; page?: string };
+  searchParams: Promise<{ classe?: string; teacher?: string; page?: string }>;
 }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const canDelete = u.role === "ADMIN" || u.role === "DIRECTOR";
   const isTeacher = u.role === "TEACHER";

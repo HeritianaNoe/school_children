@@ -5,7 +5,8 @@ import { buildAnnouncementPdf } from "@/lib/announcement-pdf";
 export const dynamic = "force-dynamic";
 
 /** PDF d'une annonce. Ajoutez ?inline=1 pour l'afficher dans le navigateur. */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await getSession();
   if (!u) return new Response("Non authentifié", { status: 401 });
 

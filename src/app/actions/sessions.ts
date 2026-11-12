@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { STUDENT_ALERTS_TAG } from "@/lib/student-alerts";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { done, fail } from "@/lib/flash";
@@ -45,6 +46,7 @@ export async function deleteSession(fd: FormData) {
     prisma.teacherAttendance.deleteMany({ where: { sessionId: id } }),
     prisma.session.delete({ where: { id } }),
   ]);
+  revalidateTag(STUDENT_ALERTS_TAG);
   revalidatePath("/sessions");
   revalidatePath("/dashboard");
   done("/sessions", "session_deleted");

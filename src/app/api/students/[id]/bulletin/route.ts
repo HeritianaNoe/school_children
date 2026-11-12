@@ -6,7 +6,8 @@ import { buildBulletinPdf } from "@/lib/bulletin-pdf";
 export const dynamic = "force-dynamic";
 
 /** Bulletin scolaire au format PDF (A4). Ajoutez ?inline=1 pour l'afficher dans le navigateur au lieu de le télécharger. */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
   const u = await getSession();
   if (!u) return new Response("Non authentifié", { status: 401 });
 

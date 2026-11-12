@@ -12,12 +12,14 @@ import Icon from "@/components/Icons";
 import { fmtUtcDate } from "@/lib/format";
 
 export default async function TeacherPage({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchParamsP,
 }: {
-  params: { id: string };
-  searchParams: { page?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchParamsP;
   await requireUser(["ADMIN", "DIRECTOR"]);
   const t = await prisma.teacher.findUnique({ where: { id: params.id }, include: { user: true } });
   if (!t) notFound();

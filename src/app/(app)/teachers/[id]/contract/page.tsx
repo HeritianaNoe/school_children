@@ -12,12 +12,14 @@ import PrintButton from "@/components/PrintButton";
 
 /** Contrat d'enseignement d'un enseignant : page à part, imprimable (en-tête de l'école, date, signatures). */
 export default async function TeacherContractPage({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchParamsP,
 }: {
-  params: { id: string };
-  searchParams: { c?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ c?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchParamsP;
   const me = await requireUser(["ADMIN", "DIRECTOR", "TEACHER"]);
   const t = await prisma.teacher.findUnique({ where: { id: params.id }, include: { user: true } });
   if (!t) notFound();

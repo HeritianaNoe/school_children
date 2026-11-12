@@ -7,12 +7,20 @@ import { DEFAULT_PASSWORDS } from "@/lib/default-passwords";
 import { paginate } from "@/lib/paginate";
 import TableFooter from "@/components/TableFooter";
 
-export default async function Dashboard({ searchParams }: { searchParams: { page?: string } }) {
+export default async function Dashboard({ searchParams: searchParamsP }: { searchParams: Promise<{ page?: string }> }) {
+  const searchParams = await searchParamsP;
   const u = await requireUser();
   const staff = isStaff(u.role);
   const { start, end } = weekRange();
 
-  const [notifs, announcements] = await Promise.all([
+  // Réclamations non clôturées : toutes pour le personnel, uniquement les siennes sinon
+  const reclWhere = {
+    status: { not: "CLOSED" },
+    ...(staff ? {} : { authorId: u.id }),
+  };
+
+  // Toutes les requêtes partent en même temps (avant : 4 étapes l'une après l'autre = 4 allers-retours à la base)
+  const [notifs, announcements, reclTotal, reclamations, counts, perClass] = await Promise.all([
     prisma.notification.findMany({
       where: { userId: u.id },
       orderBy: { createdAt: "desc" },
@@ -24,14 +32,6 @@ export default async function Dashboard({ searchParams }: { searchParams: { page
       take: 5,
       include: { author: { select: { name: true } } },
     }),
-  ]);
-
-  // Réclamations non clôturées : toutes pour le personnel, uniquement les siennes sinon
-  const reclWhere = {
-    status: { not: "CLOSED" },
-    ...(staff ? {} : { authorId: u.id }),
-  };
-  const [reclTotal, reclamations] = await Promise.all([
     prisma.reclamation.count({ where: reclWhere }),
     prisma.reclamation.findMany({
       where: reclWhere,
@@ -39,21 +39,27 @@ export default async function Dashboard({ searchParams }: { searchParams: { page
       take: 5,
       include: { author: { select: { name: true } } },
     }),
+    staff
+      ? Promise.all([
+          prisma.student.count(),
+          prisma.classe.count(),
+          prisma.subject.count(),
+          prisma.user.count({ where: { role: "TEACHER" } }),
+          prisma.session.count({ where: { startsAt: { gte: start, lt: end } } }),
+          prisma.studentAttendance.count({
+            where: { status: "ABSENT", session: { startsAt: { gte: start, lt: end } } },
+          }),
+          prisma.assessment.count(),
+        ])
+      : Promise.resolve([0, 0, 0, 0, 0, 0, 0]),
+    staff
+      ? prisma.classe.findMany({
+          select: { id: true, name: true, schoolYear: { select: { name: true } }, _count: { select: { students: true } } },
+          orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
+        })
+      : Promise.resolve([]),
   ]);
-
-  const [nStudents, nClasses, nSubjects, nTeachers, nSessions, nAbsences, nAssessments] = staff
-    ? await Promise.all([
-        prisma.student.count(),
-        prisma.classe.count(),
-        prisma.subject.count(),
-        prisma.user.count({ where: { role: "TEACHER" } }),
-        prisma.session.count({ where: { startsAt: { gte: start, lt: end } } }),
-        prisma.studentAttendance.count({
-          where: { status: "ABSENT", session: { startsAt: { gte: start, lt: end } } },
-        }),
-        prisma.assessment.count(),
-      ])
-    : [0, 0, 0, 0, 0, 0, 0];
+  const [nStudents, nClasses, nSubjects, nTeachers, nSessions, nAbsences, nAssessments] = counts;
 
   const stats = staff
     ? [
@@ -82,13 +88,6 @@ export default async function Dashboard({ searchParams }: { searchParams: { page
         { label: "Réclamations en attente", icon: "alert" as const, value: reclTotal, href: "/reclamations" },
       ]
     : null;
-
-  const perClass = staff
-    ? await prisma.classe.findMany({
-        include: { schoolYear: true, _count: { select: { students: true } } },
-        orderBy: [{ schoolYear: { startDate: "desc" } }, { name: "asc" }],
-      })
-    : [];
 
   const perClassPage = paginate(perClass, searchParams.page);
 
