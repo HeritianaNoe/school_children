@@ -20,17 +20,27 @@ export async function getEmployeAlerts(limit = 30): Promise<{ total: number; ite
   };
 
   const [total, rows] = await Promise.all([
-    prisma.employe.count({ where }),
-    prisma.employe.findMany({
-      where,
-      orderBy: { dateEmbauche: "desc" },
-      take: limit,
-      select: {
-        id: true, nom: true, prenom: true, matricule: true, dateEmbauche: true,
-        _count: { select: { contrats: true, paies: true } },
+  prisma.teacher.count({ where }),
+  prisma.teacher.findMany({
+    where,
+    orderBy: { /* ohatra user.name na createdAt */ },
+    take: limit,
+    select: {
+      id: true,
+      hourlyRate: true,
+      status: true,
+      user: {
+        select: { name: true, email: true, phone: true }
       },
-    }),
-  ]);
+      _count: {
+        select: {
+          contracts: true,   // TeacherContract
+          payslips: true,    // Payslip
+        },
+      },
+    },
+  }),
+]);
 
   return {
     total,
