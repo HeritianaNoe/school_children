@@ -1,56 +1,53 @@
 import { prisma } from "@/lib/prisma";
 
-export type EmployeAlert = {
-  id: number;
+export type TeacherAlert = {
+  id: string;
   nom: string;
-  matricule: string;
-  dateEmbauche: string;
+  status: string;
   sansContrat: boolean;
   sansPaie: boolean;
 };
 
 /**
- * Employés en poste (Actif / En congé) qui n'ont encore aucun contrat
- * ou aucune paie enregistrée. Les plus récemment embauchés d'abord.
+ * Enseignants izay tsy manana contrat na tsy manana fiche de paie.
+ * Ny farany nampidirina no aloha.
  */
-export async function getEmployeAlerts(limit = 30): Promise<{ total: number; items: EmployeAlert[] }> {
+export async function getTeacherAlerts(limit = 30): Promise<{ total: number; items: TeacherAlert[] }> {
   const where = {
-    statut: { in: ["ACTIF", "EN_CONGE"] as ("ACTIF" | "EN_CONGE")[] },
-    OR: [{ contrats: { none: {} } }, { paies: { none: {} } }],
+    OR: [
+      { contracts: { none: {} } },
+      { payslips: { none: {} } },
+    ],
   };
 
   const [total, rows] = await Promise.all([
-  prisma.teacher.count({ where }),
-  prisma.teacher.findMany({
-    where,
-    orderBy: { /* ohatra user.name na createdAt */ },
-    take: limit,
-    select: {
-      id: true,
-      hourlyRate: true,
-      status: true,
-      user: {
-        select: { name: true, email: true, phone: true }
-      },
-      _count: {
-        select: {
-          contracts: true,   // TeacherContract
-          payslips: true,    // Payslip
+    prisma.teacher.count({ where }),
+    prisma.teacher.findMany({
+      where,
+      orderBy: { user: { name: "asc" } },
+      take: limit,
+      select: {
+        id: true,
+        status: true,
+        user: { select: { name: true } },
+        _count: {
+          select: {
+            contracts: true,
+            payslips: true,
+          },
         },
       },
-    },
-  }),
-]);
+    }),
+  ]);
 
   return {
     total,
-    items: rows.map((e) => ({
-      id: e.id,
-      nom: `${e.prenom} ${e.nom}`,
-      matricule: e.matricule,
-      dateEmbauche: e.dateEmbauche.toISOString(),
-      sansContrat: e._count.contrats === 0,
-      sansPaie: e._count.paies === 0,
+    items: rows.map((t) => ({
+      id: t.id,
+      nom: t.user.name,
+      status: t.status,
+      sansContrat: t._count.contracts === 0,
+      sansPaie: t._count.payslips === 0,
     })),
   };
 }
