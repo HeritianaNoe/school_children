@@ -1,10 +1,11 @@
 import Link from "next/link";
 import AppearancePicker from "@/components/AppearancePicker";
+import AccessMatrix from "@/components/AccessMatrix";
 import Icon from "@/components/Icons";
 import { requireUser } from "@/lib/session";
-import { ROLES, hasRole } from "@/lib/permissions";
-import { updateMaxStudents } from "@/app/actions/settings";
-import { getMaxStudentsPerClass, MAX_STUDENTS_LIMITS } from "@/lib/settings";
+import { ROLES, hasRole, canManageAccess } from "@/lib/permissions";
+import { updateMaxStudents, saveAccessMatrix } from "@/app/actions/settings";
+import { getMaxStudentsPerClass, MAX_STUDENTS_LIMITS, getRoleAccessMap, resolveAccessMatrix } from "@/lib/settings";
 import { getOverCapacityClasses } from "@/lib/capacity";
 import { ALERT_LIMITS } from "@/lib/student-alerts";
 
@@ -12,17 +13,15 @@ export default async function SettingsPage() {
   const u = await requireUser();
   const staff = hasRole(u.role, ROLES.STAFF);
   const canEdit = hasRole(u.role, ROLES.DIRECTION);
-  const [max, over] = staff ? await Promise.all([getMaxStudentsPerClass(), getOverCapacityClasses()]) : [0, []];
+  const canEditAccess = canManageAccess(u.role);
+  const [max, over, overrides] = staff
+    ? await Promise.all([getMaxStudentsPerClass(), getOverCapacityClasses(), getRoleAccessMap()])
+    : [0, [] as Awaited<ReturnType<typeof getOverCapacityClasses>>, {} as Record<string, boolean>];
+
+  const matrix = resolveAccessMatrix(overrides);
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1>Paramètres</h1>
-          <p>Personnalisez l&apos;application et réglez le fonctionnement de l&apos;établissement</p>
-        </div>
-      </div>
-
       <section className="settings-section">
         <h2 style={{ marginTop: 0 }}>Apparence</h2>
         <p className="muted settings-lead">
@@ -115,6 +114,8 @@ export default async function SettingsPage() {
           </ul>
         </section>
       )}
+
+      {staff && <AccessMatrix matrix={matrix} canEdit={canEditAccess} action={saveAccessMatrix} />}
     </>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ROLE_LABEL } from "@/lib/labels";
-import { ROLES, hasRole } from "@/lib/permissions";
+import { ROLES, hasRole, canAccessResource, resourceForHref, type ResourceKey } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/session";
 import Icon, { type IconName } from "./Icons";
 
@@ -15,10 +15,13 @@ export default function Nav({
   user,
   studentId,
   avatarUrl,
+  accessMap,
 }: {
   user: SessionUser;
   studentId?: string | null;
   avatarUrl?: string | null;
+  /** Overrides matrice d'accès ("ROLE:resource" → boolean) */
+  accessMap?: Record<string, boolean>;
 }) {
   const pathname = usePathname();
   // Mobile : menu fermé par défaut (tiroir). Desktop : la sidebar est toujours visible (voir globals.css)
@@ -26,6 +29,13 @@ export default function Nav({
   const staff = hasRole(user.role, ROLES.STAFF);
   const pedagogy = hasRole(user.role, ROLES.PEDAGOGY);
   const direction = hasRole(user.role, ROLES.DIRECTION);
+
+  /** Respecte la matrice d'accès (Paramètres) si fournie, sinon les groupes de rôles. */
+  function allowed(href: string, fallback: boolean): boolean {
+    const res = resourceForHref(href);
+    if (!res || !accessMap) return fallback;
+    return canAccessResource(user.role, res as ResourceKey, accessMap);
+  }
 
   // Fermer le tiroir à chaque navigation
   useEffect(() => {
@@ -54,31 +64,31 @@ export default function Nav({
   const sections: NavSection[] = [
     {
       links: [
-        { href: "/dashboard", label: "Tableau de bord", icon: "dashboard", show: true },
-        { href: "/timetable", label: "Emploi du temps", icon: "calendar", show: true },
-        { href: "/presents", label: "Élèves présents", icon: "users", show: true },
-        { href: "/announcements", label: "Annonces", icon: "megaphone", show: true },
-        { href: "/reclamations", label: "Réclamations", icon: "alert", show: true },
+        { href: "/dashboard", label: "Tableau de bord", icon: "dashboard", show: allowed("/dashboard", true) },
+        { href: "/timetable", label: "Emploi du temps", icon: "calendar", show: allowed("/timetable", true) },
+        { href: "/presents", label: "Élèves présents", icon: "users", show: allowed("/presents", true) },
+        { href: "/announcements", label: "Annonces", icon: "megaphone", show: allowed("/announcements", true) },
+        { href: "/reclamations", label: "Réclamations", icon: "alert", show: allowed("/reclamations", true) },
       ],
     },
     {
       title: "Pédagogie",
       links: [
-        { href: "/school-years", label: "Années scolaires", icon: "history", show: direction },
-        { href: "/classes", label: "Classes", icon: "school", show: staff },
-        { href: "/students", label: "Élèves", icon: "graduation", show: pedagogy },
-        { href: "/subjects", label: "Matières", icon: "book", show: pedagogy },
-        { href: "/terms", label: "Périodes", icon: "calendar", show: staff },
-        { href: "/assessments", label: "Notes et évaluations", icon: "clipboard", show: pedagogy },
-        { href: "/sessions", label: "Séances et présences", icon: "calendarCheck", show: pedagogy },
+        { href: "/school-years", label: "Années scolaires", icon: "history", show: allowed("/school-years", direction) },
+        { href: "/classes", label: "Classes", icon: "school", show: allowed("/classes", staff) },
+        { href: "/students", label: "Élèves", icon: "graduation", show: allowed("/students", pedagogy) },
+        { href: "/subjects", label: "Matières", icon: "book", show: allowed("/subjects", pedagogy) },
+        { href: "/terms", label: "Périodes", icon: "calendar", show: allowed("/terms", staff) },
+        { href: "/assessments", label: "Notes et évaluations", icon: "clipboard", show: allowed("/assessments", pedagogy) },
+        { href: "/sessions", label: "Séances et présences", icon: "calendarCheck", show: allowed("/sessions", pedagogy) },
       ],
     },
     {
       title: "Personnel",
       links: [
-        { href: "/teachers", label: "Enseignants", icon: "presentation", show: staff },
-        { href: "/users", label: "Utilisateurs", icon: "users", show: staff },
-        { href: "/payroll", label: "Paie", icon: "wallet", show: pedagogy },
+        { href: "/teachers", label: "Enseignants", icon: "presentation", show: allowed("/teachers", staff) },
+        { href: "/users", label: "Utilisateurs", icon: "users", show: allowed("/users", staff) },
+        { href: "/payroll", label: "Paie", icon: "wallet", show: allowed("/payroll", pedagogy) },
       ],
     },
     {
@@ -91,7 +101,7 @@ export default function Nav({
     },
     {
       title: "Système",
-      links: [{ href: "/settings", label: "Paramètres", icon: "settings", show: true }],
+      links: [{ href: "/settings", label: "Paramètres", icon: "settings", show: allowed("/settings", true) }],
     },
   ];
 
